@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenLayers Grayscale with CSS Filter</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css" />
+    <style>
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        #colorControl {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+
+        #colorControl button {
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+
+        /* CSS 애니메이션을 이용해 부드러운 전환 효과를 줄 수 있습니다. */
+        .grayscale-filter {
+            filter: grayscale(100%);
+            transition: filter 0.5s ease-in-out;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="colorControl">
+        <button id="toggleGrayscale">흑백/컬러 전환</button>
+    </div>
+    <div id="map"></div>
+    <script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+    <script>
+        const map = new ol.Map({
+            target: 'map',
+            layers: [
+                new ol.layer.Tile({
+                    source: new ol.source.OSM()
+                })
+            ],
+            view: new ol.View({
+                center: ol.proj.fromLonLat([126.927464, 37.626611]),
+                zoom: 12
+            })
+        });
+
+        document.getElementById('toggleGrayscale').addEventListener('click', function () {
+            const viewport = map.getViewport();
+            viewport.classList.toggle('grayscale-filter');
+        });
+    </script>
+</body>
+
+</html>

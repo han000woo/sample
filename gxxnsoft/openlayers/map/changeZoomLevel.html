@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quick Start</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css" />
+    <link rel="stylesheet" href="../css/common.css" />
+</head>
+
+<style>
+    #zoomControl {
+        position: absolute;
+        top: 10px;
+        right: 40px;
+        width: 25px;
+        z-index: 1000;
+    }
+    #zoomControl button {
+        display: block;
+        margin: 5px;
+        padding: 10px;
+    }
+    #zoomControl button:focus {
+        outline: none;
+    }
+    #zoomControl button:hover {
+        background-color: #f0f0f0;
+    }
+    #zoomControl button:active {
+        background-color: #d0d0d0;
+    }
+</style>
+<body>
+    <div id="zoomControl">
+        <button id="zoom_up">
+            <img src="../img/arrow_up.png" />
+        </button>
+        <button id="zoom_down">
+            <img src="../img/arrow_down.png"/>
+        </button>
+    </div>
+    <div id="map"></div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+<script>
+    const map = new ol.Map({
+        target: 'map',
+        layers: [
+            new ol.layer.Tile({
+                source: new ol.source.OSM()
+            })
+        ],
+        view: new ol.View({
+            //대충 우리집 좌표 
+            center: ol.proj.fromLonLat([126.927464, 37.626611]),
+            zoom: 6,
+        }),
+        controls: []
+    });
+
+    document.getElementById('zoom_up').addEventListener('click', function() {
+        const view = map.getView();
+        view.setZoom(view.getZoom() + 1);
+    });
+
+    document.getElementById('zoom_down').addEventListener('click', function() {
+        const view = map.getView();
+        view.setZoom(view.getZoom() - 1);
+    });
+</script>
+
+</html>
