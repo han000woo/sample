@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+       
+    <meta charset="UTF-8" />
+       
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Quick Start</title>
+       
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css" />
+       
+    <link rel="stylesheet" href="../css/common.css" />
+</head>
+<style>
+    #mousePosition {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1000;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 5px;
+        border-radius: 5px;
+    }
+</style>
+
+<body>
+    <p id="mousePosition"></p>
+    <div id="map"></div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+<script>
+    const map = new ol.Map({
+        target: 'map',
+        layers: [
+            new ol.layer.Tile({
+                source: new ol.source.OSM()
+            })
+        ],
+        view: new ol.View({
+            center: ol.proj.fromLonLat([126.927464, 37.626611]),
+            zoom: 18
+        })
+    });
+
+    // 마우스 포인터의 위치를 표시할 DOM 요소
+    const mousePositionElement = document.getElementById('mousePosition');
+
+    // 마우스 이동 시 좌표를 업데이트하는 이벤트 리스너
+    map.on('pointermove', function (evt) {
+        // 지도를 벗어나면 좌표를 표시하지 않습니다.
+        if (evt.dragging) {
+            return;
+        }
+
+        // 현재 마우스 포인터의 좌표(EPSG:3857)를 가져옵니다.
+        const coordinate = evt.coordinate;
+
+        // 좌표계를 EPSG:3857에서 위경도(EPSG:4326)로 변환합니다.
+        const wgs84Coordinate = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
+
+        // 변환된 좌표를 원하는 형식으로 포맷합니다. (소수점 6자리)
+        const formattedCoordinate = ol.coordinate.toStringXY(wgs84Coordinate, 6);
+
+        // HTML 요소에 좌표를 표시합니다.
+        mousePositionElement.innerHTML = formattedCoordinate;
+    });
+</script>
+
+</html>

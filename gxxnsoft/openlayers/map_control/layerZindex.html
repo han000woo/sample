@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>zIndex Control</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <div id="controls">
+        <h3>Layer zIndex</h3>
+        <div class="control-item">
+            <span style="color: green;">⭐️ Star: </span>
+            <input type="number" id="idx1" min="0" max="100" />
+        </div>
+        <div class="control-item">
+            <span style="color: blue;">🟦 Square: </span>
+            <input type="number" id="idx2" min="0" max="100" />
+        </div>
+        <div class="control-item">
+            <span style="color: red;">🔺 Triangle: </span>
+            <input type="number" id="idx3" min="0" max="100" />
+        </div>
+    </div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+<script>
+    // 기존의 전역 변수와 스타일 정의
+    var map;
+    var view;
+    var stroke = new ol.style.Stroke({ color: 'black', width: 1 });
+
+    var styles = {
+        'square': new ol.style.Style({
+            image: new ol.style.RegularShape({
+                fill: new ol.style.Fill({ color: 'blue' }),
+                stroke: stroke,
+                points: 4,
+                radius: 80,
+                angle: Math.PI / 4
+            })
+        }),
+        'triangle': new ol.style.Style({
+            image: new ol.style.RegularShape({
+                fill: new ol.style.Fill({ color: 'red' }),
+                stroke: stroke,
+                points: 3,
+                radius: 80,
+                rotation: Math.PI / 4,
+                angle: 0
+            })
+        }),
+        'star': new ol.style.Style({
+            image: new ol.style.RegularShape({
+                fill: new ol.style.Fill({ color: 'green' }),
+                stroke: stroke,
+                points: 5,
+                radius: 80,
+                radius2: 40,
+                angle: 0
+            })
+        })
+    };
+
+    $(document).ready(function () {
+        initMap();
+        addLayers();
+    });
+
+    // 지도 생성 함수
+    function initMap() {
+        view = new ol.View({
+            center: ol.proj.fromLonLat([127.55668016904587, 37.384800434435434]),
+            zoom: 11,
+            minZoom: 5,
+            maxZoom: 18,
+            projection: 'EPSG:3857'
+        });
+
+        var layer = new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: '//xy.gcen.co.kr/reverse/mapset/tile/{z}/{x}/{y}?mapset=vt_maplabel'
+            })
+        });
+
+        map = new ol.Map({
+            target: "map",
+            layers: [layer],
+            view: view,
+            controls: []
+        });
+    }
+
+    // 도형 레이어 추가 함수
+    function addLayers() {
+        // zIndex를 1, 2, 3으로 변경
+        var layer1 = createLayer([127.48668016904587, 37.384800434435434], styles['star'], 1);
+        var layer2 = createLayer([127.55668016904587, 37.384800434435434], styles['square'], 2);
+        var layer3 = createLayer([127.62668016904587, 37.384800434435434], styles['triangle'], 3);
+
+        map.addLayer(layer1);
+        map.addLayer(layer2);
+        map.addLayer(layer3);
+
+        // UI에 레이어 바인딩 (id를 1, 2, 3으로 변경)
+        bindInputs(1, layer1);
+        bindInputs(2, layer2);
+        bindInputs(3, layer3);
+    }
+
+    // 레이어 생성 함수
+    function createLayer(coordinates, style, zIndex) {
+        var feature = new ol.Feature(new ol.geom.Point(ol.proj.fromLonLat(coordinates)));
+        feature.setStyle(style);
+
+        var source = new ol.source.Vector({
+            features: [feature]
+        });
+
+        var vectorLayer = new ol.layer.Vector({
+            source: source,
+            zIndex: zIndex // zIndex를 레이어 생성 시에 설정
+        });
+
+        return vectorLayer;
+    }
+
+    // UI 인풋과 레이어를 바인딩하는 함수
+    function bindInputs(id, layer) {
+        var idxInput = document.getElementById('idx' + id);
+
+        idxInput.onchange = function () {
+            // 입력된 값이 숫자가 아니면 기본값 0으로 설정
+            const newZIndex = parseInt(this.value, 10) || 0;
+            layer.setZIndex(newZIndex);
+        };
+
+        // 초기값 설정
+        idxInput.value = String(layer.getZIndex());
+    }
+</script>
+
+</html>

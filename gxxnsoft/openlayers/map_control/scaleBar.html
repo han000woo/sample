@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quick Start</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css" />
+    <link rel="stylesheet" href="../css/common.css" />
+</head>
+<style>
+    #units {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        padding: 5px;
+    }
+
+    #units option {
+        padding: 5px;
+    }
+</style>
+
+<body>
+    <select id="units" style="margin-bottom: 10px;">
+        <option value="degrees">degrees</option>
+        <option value="imperial">imperial inch</option>
+        <option value="us">us inch</option>
+        <option value="nautical">nautical mile</option>
+        <option value="metric" selected>metric</option>
+    </select>
+    <div id="map"></div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+<script>
+    var scaleLineControl = null;
+    const map = new ol.Map({
+        target: 'map',
+        layers: [
+            new ol.layer.Tile({
+                source: new ol.source.OSM()
+            })
+        ],
+        view: new ol.View({
+            //대충 우리집 좌표 
+            center: ol.proj.fromLonLat([126.927464, 37.626611]),
+            zoom: 18
+        })
+    });
+    document.getElementById('units').addEventListener('change', function () {
+        const selectedUnit = this.value;
+        scaleLineControl.setUnits(selectedUnit);
+    });
+    function initSacaleBar() {
+        scaleLineControl = new ol.control.ScaleLine({
+            units: 'metric' // 기본 단위 설정
+        });
+        map.addControl(scaleLineControl);
+    }
+    initSacaleBar();
+</script>
+
+</html>

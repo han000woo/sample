@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Expanded Public Mapset Switcher</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css" />
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        #mapset-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .mapset-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mapset-group h4 {
+            margin: 0;
+            font-size: 1.1em;
+            color: #1a1a1a;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        .mapset-button {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: #f0f0f0;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+            text-align: center;
+        }
+
+        .mapset-button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .select-mapset {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <div id="mapset-controls">
+        <div class="mapset-group">
+            <h4>베이스맵 (한국)</h4>
+            <div class="mapset-button portal-basemap select-mapset" data-map-id="vworld_base">VWorld 기본지도</div>
+            <div class="mapset-button portal-basemap" data-map-id="vworld_satellite">VWorld 위성지도</div>
+            <div class="mapset-button portal-basemap" data-map-id="vworld_white">VWorld 백지도</div>
+            <div class="mapset-button portal-basemap" data-map-id="vworld_midnight">VWorld 야간지도</div>
+        </div>
+        <div class="mapset-group">
+            <h4>베이스맵 (해외)</h4>
+            <div class="mapset-button portal-basemap" data-map-id="osm">OpenStreetMap</div>
+            <div class="mapset-button portal-basemap" data-map-id="stadia_alidade">Stadia Alidade</div>
+            <div class="mapset-button portal-basemap" data-map-id="stadia_alidade_satelite">Stadia Alidade Satellite</div>
+            <div class="mapset-button portal-basemap" data-map-id="stadia_stamen_toner">Stadia Stamen Toner</div>
+        </div>
+        <div class="mapset-group">
+            <h4>오버레이</h4>
+            <div class="mapset-button portal-overlay" data-map-id="vworld_hybrid">VWorld 하이브리드</div>
+        </div>
+    </div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+<script>
+    var map;
+    var view;
+
+    document.addEventListener("DOMContentLoaded", function () {
+        initMap();
+        initMapset();
+
+        const baseMapButtons = document.querySelectorAll(".portal-basemap");
+        baseMapButtons.forEach(button => {
+            button.addEventListener("click", function () {
+                const currentSelected = document.querySelector(".portal-basemap.select-mapset");
+                if (currentSelected) {
+                    currentSelected.classList.remove("select-mapset");
+                }
+                this.classList.add("select-mapset");
+                const mapsetId = this.getAttribute("data-map-id");
+                baseMapsetSelect(mapsetId);
+            });
+        });
+
+        const overlayButtons = document.querySelectorAll(".portal-overlay");
+        overlayButtons.forEach(button => {
+            button.addEventListener("click", function () {
+                const mapsetId = this.getAttribute("data-map-id");
+                let check;
+                if (this.classList.contains("select-mapset")) {
+                    check = false;
+                    this.classList.remove("select-mapset");
+                } else {
+                    check = true;
+                    this.classList.add("select-mapset");
+                }
+                overlayMapsetSelect(mapsetId, check);
+            });
+        });
+    });
+
+    function initMap() {
+        view = new ol.View({
+            center: ol.proj.fromLonLat([127.055103, 37.540350]),
+            zoom: 16,
+            minZoom: 5,
+            maxZoom: 18,
+            projection: 'EPSG:3857'
+        });
+
+        map = new ol.Map({
+            target: 'map',
+            view: view,
+        });
+    }
+
+    /* 맵셋 리스트 */
+    // VWorld 레이어
+    var vworldBaseLayer = new ol.layer.Tile({
+        title: "VWorld 기본지도",
+        source: new ol.source.XYZ({
+            url: 'http://xdworld.vworld.kr:8080/2d/Base/201802/{z}/{x}/{y}.png'
+        }),
+        visible: true,
+        zIndex: 1
+    });
+
+    var vworldSatelliteLayer = new ol.layer.Tile({
+        title: "VWorld 위성지도",
+        source: new ol.source.XYZ({
+            url: 'http://xdworld.vworld.kr:8080/2d/Satellite/201802/{z}/{x}/{y}.jpeg'
+        }),
+        visible: false,
+        zIndex: 1
+    });
+
+    var vworldWhiteLayer = new ol.layer.Tile({
+        title: "VWorld 백지도",
+        source: new ol.source.XYZ({
+            url: 'https://cdn.vworld.kr/2d/white/service/{z}/{x}/{y}.png'
+        }),
+        visible: false,
+        zIndex: 1
+    });
+
+    var vworldMidnightLayer = new ol.layer.Tile({
+        title: "VWorld 야간지도",
+        source: new ol.source.XYZ({
+            url: 'http://xdworld.vworld.kr:8080/2d/midnight/201802/{z}/{x}/{y}.png'
+        }),
+        visible: false,
+        zIndex: 1
+    });
+
+    var vworldHybridLayer = new ol.layer.Tile({
+        title: "VWorld 하이브리드",
+        source: new ol.source.XYZ({
+            url: 'http://xdworld.vworld.kr:8080/2d/Hybrid/201802/{z}/{x}/{y}.png'
+        }),
+        visible: false,
+        zIndex: 2
+    });
+
+    // 해외 공개 레이어
+    var osmLayer = new ol.layer.Tile({
+        title: "OpenStreetMap",
+        source: new ol.source.OSM(),
+        visible: false,
+        zIndex: 1
+    });
+
+    var stadiaAlidadeLayer = new ol.layer.Tile({
+        title: "Stadia Alidade Smooth",
+        source: new ol.source.XYZ({
+            url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}@2x.png'
+        }),
+        visible: false,
+        zIndex: 1
+
+    });
+
+    var stadiaAlidadeSateliteLayer = new ol.layer.Tile({
+        title: "Stadia Alidade Smooth",
+        source: new ol.source.XYZ({
+            url: 'https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}@2x.jpg'
+        }),
+        visible: false,
+        zIndex: 1
+
+    });
+
+    var stadiaStamenTonerLayer = new ol.layer.Tile({
+        title: "Stadia Stamen Toner",
+        source: new ol.source.XYZ({
+            url: 'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}@2x.png'
+        }),
+        visible: false,
+        zIndex: 1
+    });
+
+    // 모든 베이스맵 레이어를 배열에 담아 관리
+    const baseLayers = [
+        vworldBaseLayer,
+        vworldSatelliteLayer,
+        vworldWhiteLayer,
+        vworldMidnightLayer,
+        osmLayer,
+        stadiaAlidadeLayer,
+        stadiaAlidadeSateliteLayer,
+        stadiaStamenTonerLayer
+    ];
+
+    // 모든 오버레이 레이어를 배열에 담아 관리
+    const overlayLayers = [vworldHybridLayer];
+
+
+    function baseMapsetSelect(mapsetId) {
+        // 모든 베이스맵 레이어를 숨깁니다.
+        baseLayers.forEach(layer => layer.setVisible(false));
+
+        // 선택된 베이스맵 레이어만 표시합니다.
+        switch (mapsetId) {
+            case 'vworld_base':
+                vworldBaseLayer.setVisible(true);
+                break;
+            case 'vworld_satellite':
+                vworldSatelliteLayer.setVisible(true);
+                break;
+            case 'vworld_white':
+                vworldWhiteLayer.setVisible(true);
+                break;
+            case 'vworld_midnight':
+                vworldMidnightLayer.setVisible(true);
+                break;
+            case 'osm':
+                osmLayer.setVisible(true);
+                break;
+            case 'stadia_alidade':
+                stadiaAlidadeLayer.setVisible(true);
+                break;
+            case 'stadia_alidade_satelite':
+                stadiaAlidadeSateliteLayer.setVisible(true);
+                break;
+            case 'stadia_stamen_toner':
+                stadiaStamenTonerLayer.setVisible(true);
+                break;
+        }
+    }
+
+    function overlayMapsetSelect(id, check) {
+        // 모든 오버레이 레이어를 숨기고, 선택된 레이어만 표시하는 로직으로 변경
+        overlayLayers.forEach(layer => layer.setVisible(false));
+        if (check) {
+            switch (id) {
+                case 'vworld_hybrid':
+                    vworldHybridLayer.setVisible(true);
+                    break;
+            }
+        }
+    }
+
+    function initMapset() {
+        // 모든 레이어를 지도에 추가
+        baseLayers.forEach(layer => map.addLayer(layer));
+        overlayLayers.forEach(layer => map.addLayer(layer));
+    }
+</script>
+
+</html>
