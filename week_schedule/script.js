@@ -6,54 +6,36 @@ const timeCol = grid.querySelector('.time-col');
 document.addEventListener('DOMContentLoaded', () => {
     // 페이지 로드 시 시간 그리드와 요일 셀 생성
     createTimeGridRows();
+    initializeButtons();
+    initializeDragAndDrop();
 });
 
+// 빈 시간표 틀을 생성하는 함수 (기존과 유사하나 일부 수정)
 function createTimeGridRows() {
-    // 👇 #grid를 직접 선택합니다.
-    const grid = document.getElementById('grid');
+    grid.innerHTML = `
+        <div class="day-header">시간</div><div class="day-header">월</div>
+        <div class="day-header">화</div><div class="day-header">수</div>
+        <div class="day-header">목</div><div class="day-header">금</div>
+        <div class="day-header">토</div><div class="day-header">일</div>
+    `;
 
-    // 이전에 생성된 시간 슬롯과 스케줄 셀만 삭제합니다 (헤더는 남김).
-    const existingDynamicElements = grid.querySelectorAll('.time-slot, .schedule-cell');
-    existingDynamicElements.forEach(el => el.remove());
+    for (let h = startH; h < endH; h++) {
+        for (let m = 0; m < 60; m += 30) {
+            const timeString = `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            
+            const timeSlot = document.createElement('div');
+            timeSlot.classList.add('time-slot');
+            if (m === 0) timeSlot.textContent = `${h % 24}:00`;
+            else timeSlot.textContent = `${h % 24}:30`;
+            grid.appendChild(timeSlot);
 
-    let currentHour = startH;
-    let currentMin = 0;
-    const endTimeInMinutes = endH * 60;
-
-    while (currentHour * 60 + currentMin < endTimeInMinutes) {
-        let displayHour = currentHour % 24;
-        const timeString = `${String(displayHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
-
-        // 1. 시간 칸 생성 및 grid에 직접 추가
-        const timeSlot = document.createElement('div');
-        timeSlot.classList.add('time-slot');
-        timeSlot.dataset.time = timeString;
-        if (currentMin === 0) {
-            timeSlot.textContent = `${String(displayHour).padStart(2, '0')}:00`;
-        }else{
-            timeSlot.textContent = `${String(displayHour).padStart(2, '0')}:30`;
-        }
-        // 👇 grid에 바로 추가
-        grid.appendChild(timeSlot);
-
-        // 2. 요일별 셀 생성 및 grid에 직접 추가
-        const days = ['월', '화', '수', '목', '금', '토', '일'];
-        for (const day of days) {
-            const dayCell = document.createElement("div");
-            dayCell.classList.add("schedule-cell");
-            dayCell.dataset.day = day;
-            dayCell.dataset.time = timeString;
-            dayCell.addEventListener("click", () => {
-                alert(`${day}요일 ${timeString} 클릭됨`);
+            ['월', '화', '수', '목', '금', '토', '일'].forEach(day => {
+                const cell = document.createElement('div');
+                cell.classList.add('schedule-cell');
+                cell.dataset.day = day;
+                cell.dataset.time = timeString;
+                grid.appendChild(cell);
             });
-            // 👇 grid에 바로 추가
-            grid.appendChild(dayCell);
-        }
-
-        currentMin += 30;
-        if (currentMin >= 60) {
-            currentMin -= 60;
-            currentHour += 1;
         }
     }
 }
