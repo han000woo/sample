@@ -222,6 +222,7 @@ function initializeButtons() {
     const importBtn = document.getElementById('import-btn');
     const fileInput = document.getElementById('file-input');
     const resetBtn = document.getElementById('reset-button');
+    const downloadBtn = document.getElementById('download-button');
 
     addSubjectBtn.addEventListener('click', () => {
         openModal();
@@ -239,9 +240,14 @@ function initializeButtons() {
     resetBtn.addEventListener('click', () => {
         subjects = [];
         schedule = [];
-        // 3. 변경된 데이터를 기반으로 화면을 다시 그립니다.
         renderSchedule();
     });
+
+    downloadBtn.addEventListener('click', () => {
+        handleImageExport();
+    })
+
+    
 }
 
 // --- 유틸리티 함수들 ---

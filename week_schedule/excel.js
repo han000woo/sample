@@ -120,3 +120,38 @@ function convertExcelTime(excelTime) {
 function getRandomColor() {
     return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
 }
+
+function handleImageExport() {
+    // 1. 캡처할 영역을 선택합니다. '.main-container'는 제목까지 포함합니다.
+    const captureArea = document.querySelector('.main-container');
+
+    // 로딩 스피너나 "이미지 생성 중..." 메시지를 표시하면 사용자 경험이 좋아집니다 (선택사항)
+    alert('이미지 생성을 시작합니다. 잠시만 기다려주세요...');
+
+    // 2. html2canvas를 사용하여 선택한 영역을 캡처합니다.
+    html2canvas(captureArea, {
+        allowTaint: true, // 다른 도메인의 이미지를 허용 (필요 시)
+        useCORS: true,    // CORS를 사용하는 이미지 로드
+        scale: 2,         // 해상도를 2배로 높여 더 선명한 이미지 생성
+        backgroundColor: '#f0f2f5' // 캡처 영역 바깥의 배경색 지정
+    }).then(canvas => {
+        // 3. 캡처된 결과를 이미지 URL로 변환합니다.
+        const imageUrl = canvas.toDataURL('image/png');
+
+        // 4. 임시 <a> 태그를 만들어 다운로드를 실행합니다.
+        const link = document.createElement('a');
+
+        // 파일 이름을 '주간시간표_YYYY-MM-DD.png' 형식으로 만듭니다.
+        const today = new Date();
+        const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        link.download = `주간시간표_${dateString}.png`;
+
+        link.href = imageUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }).catch(error => {
+        console.error("이미지 캡처 중 오류 발생:", error);
+        alert("이미지를 생성하는 데 실패했습니다.");
+    });
+}

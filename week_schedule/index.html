@@ -14,19 +14,14 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="modal.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 
 <body>
     <div class="container">
         <div class="main-container">
             <h1>주간 시간표</h1>
-            <div id="schedule-controller">
-                <input type="file" id="file-input" accept=".xlsx, .xls" style="display: none;">
-                <button id="import-btn">엑셀 불러오기</button>
-                <button id="add-subject-btn">일정 추가</button>
-                <button id="download-button">xlsx파일 생성</button>
-                <button id="reset-button">초기화</button>
-            </div>
 
             <div class="grid" id="grid">
                 <div class="day-header">시간</div>
@@ -40,8 +35,29 @@
             </div>
         </div>
         <div class="batch-container">
+
             <h2>랜덤배치</h2>
         </div>
+    </div>
+
+    <div id="schedule-controller" draggable="true">
+        <input type="file" id="file-input" accept=".xlsx, .xls, .csv" style="display: none;">
+
+        <button id="import-btn" title="엑셀 불러오기">
+            <span class="material-icons">upload_file</span>
+        </button>
+
+        <button id="add-subject-btn" title="새 일정 추가">
+            <span class="material-icons">add_circle</span>
+        </button>
+
+        <button id="download-button" title="이미지로 저장">
+            <span class="material-icons">image</span>
+        </button>
+
+        <button id="reset-button" title="초기화">
+            <span class="material-icons">restart_alt</span>
+        </button>
     </div>
 
     <div id="modal-overlay" class="hidden">
