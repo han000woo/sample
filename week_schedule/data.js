@@ -1,24 +1,27 @@
 // 과목 원본 데이터
-let subjects = []; 
+let subjects = [];
 // 시간표 배치 데이터
 let schedule = [];
 // 드래그 중인 과목 정보 (임시 저장)
 let draggedInfo = null;
+
 function renderSchedule() {
-    // 1. 모든 셀 초기화
+    // 1. 모든 셀과 기존 오버레이 초기화
     document.querySelectorAll('.schedule-cell').forEach(cell => {
         cell.innerHTML = '';
-        cell.className = 'schedule-cell'; // 'colored' 등 추가된 클래스 모두 제거
+        cell.className = 'schedule-cell';
         cell.style.backgroundColor = '';
         cell.style.borderRadius = '';
-        cell.style.borderBottomColor = ''; // 테두리 색상 초기화
+        cell.style.borderBottomColor = '';
         cell.draggable = false;
         cell.removeAttribute('data-schedule-id');
         cell.removeEventListener('dragstart', handleDragStart);
         cell.removeEventListener('dragend', handleDragEnd);
     });
+    // 그리드에 직접 추가된 이전 오버레이들을 모두 제거
+    document.querySelectorAll('.subject-title-overlay').forEach(overlay => overlay.remove());
 
-    // 2. schedule 배열을 순회하며 과목 셀 스타일링
+    // 2. schedule 배열을 순회하며 과목 셀 스타일링 및 오버레이 생성
     schedule.forEach(item => {
         const subject = subjects.find(s => s.id === item.subjectId);
         if (!subject) return;
@@ -26,12 +29,14 @@ function renderSchedule() {
         const durationSlots = Math.ceil(item.duration / 30);
         const startTimeInMinutes = timeToMinutes(item.startTime);
 
+        let firstCell = null; // 오버레이 위치 계산을 위해 첫 번째 셀을 저장할 변수
+
         for (let i = 0; i < durationSlots; i++) {
             const currentSlotTime = minutesToTime(startTimeInMinutes + i * 30);
             const cell = document.querySelector(`.schedule-cell[data-day='${item.day}'][data-time='${currentSlotTime}']`);
 
             if (cell) {
-                // ✨ [핵심] 공통 스타일 적용
+                // 셀 스타일링 로직 (이전과 동일)
                 cell.classList.add('colored');
                 cell.style.backgroundColor = subject.color;
                 cell.dataset.scheduleId = item.scheduleId;
@@ -39,56 +44,79 @@ function renderSchedule() {
                 cell.addEventListener('dragstart', handleDragStart);
                 cell.addEventListener('dragend', handleDragEnd);
 
-                // ✨ [핵심] 첫 번째 셀 스타일링
                 if (i === 0) {
-                    cell.textContent = subject.title;
+                    firstCell = cell; // 첫 번째 셀 저장
                     cell.style.borderTopLeftRadius = '6px';
                     cell.style.borderTopRightRadius = '6px';
                 }
-                
-                // ✨ [핵심] 마지막 셀이 아닐 경우, 아래쪽 테두리를 배경색과 동일하게 만들어 숨김
                 if (i < durationSlots - 1) {
                     cell.style.borderBottomColor = subject.color;
                 }
-
-                // ✨ [핵심] 마지막 셀 스타일링
                 if (i === durationSlots - 1) {
                     cell.style.borderBottomLeftRadius = '6px';
                     cell.style.borderBottomRightRadius = '6px';
                 }
             }
         }
+
+        // ✨ [핵심] 오버레이 생성 및 그리드에 직접 추가
+        if (firstCell) {
+            const titleOverlay = document.createElement('div');
+            titleOverlay.className = 'subject-title-overlay';
+            titleOverlay.textContent = subject.title;
+
+            // 위치와 크기 계산
+            titleOverlay.style.top = `${firstCell.offsetTop}px`;
+            titleOverlay.style.left = `${firstCell.offsetLeft}px`;
+            titleOverlay.style.width = `${firstCell.offsetWidth}px`;
+            // 높이는 (셀 높이 * 칸 수) + (칸 사이의 테두리 1px * (칸 수 - 1))
+            const totalHeight = durationSlots * firstCell.offsetHeight;
+            titleOverlay.style.height = `${totalHeight}px`;
+
+            grid.appendChild(titleOverlay); // 그리드에 직접 추가
+        }
     });
 }
+
 /**
  * ✨ [변경] 이제 이벤트의 대상(e.target)은 .subject-item이 아닌 .schedule-cell 입니다.
  */
 function handleDragStart(e) {
-    // 셀에 저장된 scheduleId를 통해 드래그 정보 가져오기
     const scheduleId = e.target.dataset.scheduleId;
     const scheduleItem = schedule.find(item => item.scheduleId === scheduleId);
-    
+
     if (scheduleItem) {
-        draggedInfo = scheduleItem; // 드래그 시작 시 정보 저장
+        draggedInfo = scheduleItem;
         e.dataTransfer.setData('text/plain', scheduleId);
-        
-        // 시각적 효과: 관련된 모든 셀을 반투명하게 만듦
+        e.dataTransfer.effectAllowed = 'move';
+
+        // --- ✨ [핵심] 드래그 이미지를 동적으로 생성 ---
+        const subject = subjects.find(s => s.id === scheduleItem.subjectId);
+        const durationSlots = Math.ceil(scheduleItem.duration / 30);
+
+        // 1. 고스트 요소 생성
+        const dragGhost = document.createElement('div');
+        dragGhost.className = 'drag-ghost';
+        dragGhost.textContent = subject.title;
+        dragGhost.style.backgroundColor = subject.color;
+        dragGhost.style.width = `${e.target.offsetWidth}px`; // 실제 셀의 너비
+        dragGhost.style.height = `${durationSlots * e.target.offsetHeight}px`; // 실제 블록의 높이
+
+        // 2. body에 잠시 추가했다가 setDragImage로 사용
+        document.body.appendChild(dragGhost);
+
+        // 3. 생성한 고스트 요소를 드래그 이미지로 설정 (커서 위치는 중앙으로)
+        e.dataTransfer.setDragImage(dragGhost, e.target.offsetWidth / 2, 15);
+
+        // --- 드래그하는 원본 요소 스타일 변경 ---
         setTimeout(() => {
-            document.querySelectorAll(`[data-schedule-id='${scheduleId}']`).forEach(cell => {
-                cell.style.opacity = '1';
-            });
+            // 4. 사용이 끝난 고스트 요소를 DOM에서 제거
+            document.body.removeChild(dragGhost);
         }, 0);
     }
 }
 
 function handleDragEnd(e) {
-    if (draggedInfo) {
-        // 드래그 종료 시 모든 관련 셀의 투명도 복원
-        document.querySelectorAll(`[data-schedule-id='${draggedInfo.scheduleId}']`).forEach(cell => {
-            cell.style.opacity = '1';
-        });
-    }
-    draggedInfo = null; // 드래그 정보 초기화
     document.querySelectorAll('.schedule-cell').forEach(c => {
         c.classList.remove('drop-allowed', 'drop-forbidden');
     });
@@ -108,6 +136,10 @@ function isTimeSlotAvailable(targetDay, targetStartTime, duration, ignoreId) {
     const newStart = timeToMinutes(targetStartTime);
     const newEnd = newStart + duration;
 
+    if (newEnd > endH * 60) {
+        return false; // 시간표 끝을 넘어가면 배치 불가능
+    }
+
     // schedule 배열에서 겹치는 항목이 있는지 검사
     return !schedule.some(item => {
         if (item.scheduleId === ignoreId || item.day !== targetDay) {
@@ -116,7 +148,7 @@ function isTimeSlotAvailable(targetDay, targetStartTime, duration, ignoreId) {
 
         const existingStart = timeToMinutes(item.startTime);
         const existingEnd = existingStart + item.duration;
-        
+
         // 시간 겹침 확인: (내 시작 < 상대 끝) AND (내 끝 > 상대 시작)
         return newStart < existingEnd && newEnd > existingStart;
     });
@@ -136,10 +168,10 @@ function initializeDragAndDrop() {
             if (zone.classList.contains('schedule-cell')) {
                 const day = zone.dataset.day;
                 const time = zone.dataset.time;
-                
+
                 // 충돌 검사
                 const isAvailable = isTimeSlotAvailable(day, time, draggedInfo.duration, draggedInfo.scheduleId);
-                
+
                 if (isAvailable) {
                     zone.classList.add('drop-allowed');
                     zone.classList.remove('drop-forbidden');
@@ -188,22 +220,10 @@ function initializeDragAndDrop() {
 }
 
 function initializeButtons() {
-    const generateBtn = document.getElementById('generate-button');
-    
-    // 임시로 과목 생성 버튼을 누르면 샘플 데이터가 추가되도록 변경
-    generateBtn.addEventListener('click', () => {
-        // 샘플 데이터 추가
-        subjects = [
-            { id: 1, title: '수학', color: '#a2d2ff' },
-            { id: 2, title: '영어', color: '#ffc8dd' },
-            { id: 3, title: '프로그래밍', color: '#bde0fe' },
-        ];
-        schedule = [
-            { scheduleId: 's1', subjectId: 1, day: '월', startTime: '09:30', duration: 90 },
-            { scheduleId: 's2', subjectId: 2, day: '화', startTime: '13:00', duration: 120 },
-            { scheduleId: 's3', subjectId: 3, day: '목', startTime: '10:00', duration: 180 },
-        ];
-        renderSchedule();
+    const addSubjectBtn = document.getElementById('add-subject-btn');
+
+    addSubjectBtn.addEventListener('click', () => {
+        openModal();
     });
 }
 

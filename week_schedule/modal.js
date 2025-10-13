@@ -1,54 +1,12 @@
-const startH = 8;
-const endH = 25;
-const grid = document.getElementById('grid');
-const timeCol = grid.querySelector('.time-col');
+// --- DOM 요소 참조 ---
+const modalOverlay = document.getElementById('modal-overlay');
+const modalContent = document.getElementById('modal-content');
+const modalCloseBtn = document.getElementById('modal-close-btn');
+const subjectForm = document.getElementById('subject-form');
 
-document.addEventListener('DOMContentLoaded', () => {
-    // 페이지 로드 시 시간 그리드와 요일 셀 생성
-    createTimeGridRows();
-    initializeButtons();
-    initializeDragAndDrop();
-    initializeModal(); //모달 초기화 함수 호출
-
-});
-
-// 빈 시간표 틀을 생성하는 함수 (기존과 유사하나 일부 수정)
-function createTimeGridRows() {
-    grid.innerHTML = `
-        <div class="day-header">시간</div><div class="day-header">월</div>
-        <div class="day-header">화</div><div class="day-header">수</div>
-        <div class="day-header">목</div><div class="day-header">금</div>
-        <div class="day-header">토</div><div class="day-header">일</div>
-    `;
-
-    for (let h = startH; h < endH; h++) {
-        for (let m = 0; m < 60; m += 30) {
-            const timeString = `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-
-            const timeSlot = document.createElement('div');
-            timeSlot.classList.add('time-slot');
-            if (m === 0) timeSlot.textContent = `${h % 24}:00`;
-            else timeSlot.textContent = `${h % 24}:30`;
-            grid.appendChild(timeSlot);
-
-            ['월', '화', '수', '목', '금', '토', '일'].forEach(day => {
-                const cell = document.createElement('div');
-                cell.classList.add('schedule-cell');
-                cell.dataset.day = day;
-                cell.dataset.time = timeString;
-
-                cell.addEventListener('click', () => {
-                    // 셀에 'colored' 클래스가 없으면 (즉, 비어있으면) 모달 열기
-                    if (!cell.classList.contains('colored')) {
-                        openModal({ day: cell.dataset.day, startTime: cell.dataset.time });
-                    }
-                });
-                
-                grid.appendChild(cell);
-            });
-        }
-    }
-}
+// ==========================================================
+// ✨ 1. 모달 관련 함수들
+// ==========================================================
 
 /**
  * 모달을 열고 폼을 초기화하는 함수
@@ -163,4 +121,35 @@ function handleFormSubmit(e) {
     
     renderSchedule();
     closeModal();
+}
+
+function initializeModal() {
+    modalCloseBtn.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closeModal();
+    });
+    subjectForm.addEventListener('submit', handleFormSubmit);
+    
+    // 요일이나 시작 시간이 변경될 때마다 공부 시간 옵션 다시 계산
+    subjectForm['subject-day'].addEventListener('change', updateDurationOptions);
+    subjectForm['subject-start-time'].addEventListener('change', updateDurationOptions);
+}
+
+// ==========================================================
+// ✨ 3. 헬퍼 함수 (모달 지원용)
+// ==========================================================
+
+/** 모달의 시작 시간 옵션을 채우는 함수 */
+function populateTimeOptions() {
+    const startTimeSelect = subjectForm['subject-start-time'];
+    startTimeSelect.innerHTML = '';
+    for (let h = startH; h < endH; h++) {
+        for (let m = 0; m < 60; m += 30) {
+            const timeString = `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            const option = document.createElement('option');
+            option.value = timeString;
+            option.textContent = timeString;
+            startTimeSelect.appendChild(option);
+        }
+    }
 }
