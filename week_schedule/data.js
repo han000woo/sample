@@ -35,7 +35,7 @@ function renderSchedule() {
                 cell.classList.add('colored');
                 cell.style.backgroundColor = subject.color;
                 cell.dataset.scheduleId = item.scheduleId; // 드래그 종료 시 opacity 복원을 위해 ID는 남겨둠
-                
+
                 if (i === 0) {
                     firstCell = cell;
                     cell.style.borderTopLeftRadius = '6px';
@@ -55,11 +55,11 @@ function renderSchedule() {
             const titleOverlay = document.createElement('div');
             titleOverlay.className = 'subject-title-overlay';
             titleOverlay.textContent = subject.title;
-            
+
             // --- 이벤트 처리를 위한 속성 추가 ---
             titleOverlay.draggable = true;
             titleOverlay.dataset.scheduleId = item.scheduleId; // 드래그 시 ID 참조용
-            
+
             // --- 모든 이벤트 리스너를 여기에 추가 ---
             titleOverlay.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -81,41 +81,34 @@ function renderSchedule() {
 }
 
 function handleDragStart(e) {
+    // 드래그할 일정의 정보를 가져오는 부분 (기존과 동일)
     const scheduleId = e.target.dataset.scheduleId;
     const scheduleItem = schedule.find(item => item.scheduleId === scheduleId);
-    
+
     if (scheduleItem) {
         draggedInfo = scheduleItem;
         e.dataTransfer.setData('text/plain', scheduleId);
         e.dataTransfer.effectAllowed = 'move';
 
-        // --- 드래그 이미지 동적 생성 ---
+        // --- ✨ [핵심] 귀여운 동그라미 고스트 생성 ---
         const subject = subjects.find(s => s.id === scheduleItem.subjectId);
-        const durationSlots = Math.ceil(scheduleItem.duration / 30);
-        
-        // 실제 블록의 높이 계산
-        const blockHeight = durationSlots * e.target.offsetHeight;
-        const maxHeight = 400; // 고스트 이미지의 최대 높이 (px)
 
+        // 1. 고스트 요소 생성
         const dragGhost = document.createElement('div');
         dragGhost.className = 'drag-ghost';
-        dragGhost.textContent = subject.title;
-        dragGhost.style.backgroundColor = subject.color;
-        dragGhost.style.width = `${e.target.offsetWidth}px`;
-        
-        // ✨ [핵심] 높이가 maxHeight를 초과하는지 확인
-        if (blockHeight > maxHeight) {
-            dragGhost.style.height = `${maxHeight}px`;
-            dragGhost.classList.add('capped'); // CSS 스타일 적용을 위한 클래스 추가
-        } else {
-            dragGhost.style.height = `${blockHeight}px`;
-        }
+        dragGhost.textContent = '🕒'; // 시계 이모지나 ✨, 📌 같은 아이콘을 넣을 수 있습니다.
+        dragGhost.style.backgroundColor = subject.color; // 일정의 색상은 그대로 유지합니다.
 
+        // 2. body에 잠시 추가
         document.body.appendChild(dragGhost);
-        e.dataTransfer.setDragImage(dragGhost, e.target.offsetWidth / 2, 15);
 
-        // --- 원본 요소 스타일 변경 ---
+        // 3. 생성한 고스트를 드래그 이미지로 설정합니다.
+        //    (커서 위치는 40x40 동그라미의 정중앙인 20, 20으로 설정)
+        e.dataTransfer.setDragImage(dragGhost, 20, 20);
+
+        // --- 원본 요소 스타일 변경 및 고스트 제거 (기존과 유사) ---
         setTimeout(() => {
+            // 사용이 끝난 고스트 요소를 화면에서 완전히 제거합니다.
             document.body.removeChild(dragGhost);
         }, 0);
     }
@@ -226,9 +219,28 @@ function initializeDragAndDrop() {
 
 function initializeButtons() {
     const addSubjectBtn = document.getElementById('add-subject-btn');
+    const importBtn = document.getElementById('import-btn');
+    const fileInput = document.getElementById('file-input');
+    const resetBtn = document.getElementById('reset-button');
 
     addSubjectBtn.addEventListener('click', () => {
         openModal();
+    });
+
+
+    // '엑셀 불러오기' 버튼을 누르면 숨겨진 파일 선택창이 열립니다.
+    importBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // 사용자가 파일을 선택하면 handleExcelImport 함수가 실행됩니다.
+    fileInput.addEventListener('change', handleExcelImport);
+
+    resetBtn.addEventListener('click', () => {
+        subjects = [];
+        schedule = [];
+        // 3. 변경된 데이터를 기반으로 화면을 다시 그립니다.
+        renderSchedule();
     });
 }
 
