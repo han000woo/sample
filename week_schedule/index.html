@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>랜덤 주간 시간표 메이커</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="main-container">
+            <h1>주간 시간표</h1>
+            <div id="schedule-controller">
+                <input type="file" id="file-input" accept=".xlsx, .xls" style="display: none;">
+                <button id="import-btn">엑셀 불러오기</button>
+                <button id="generate-button">과목 생성</button>
+                <button id="download-button">xlsx파일 생성</button>
+                <button id="reset-button">초기화</button>
+            </div>
+
+            <div class="grid" id="grid">
+                <div class="day-header">시간</div>
+                <div class="day-header">월</div>
+                <div class="day-header">화</div>
+                <div class="day-header">수</div>
+                <div class="day-header">목</div>
+                <div class="day-header">금</div>
+                <div class="day-header">토</div>
+                <div class="day-header">일</div>
+            </div>
+        </div>
+        <div class="batch-container">
+            <h2>랜덤배치</h2>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
