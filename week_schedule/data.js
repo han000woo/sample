@@ -13,10 +13,6 @@ function renderSchedule() {
         cell.style.backgroundColor = '';
         cell.style.borderRadius = '';
         cell.style.borderBottomColor = '';
-        cell.draggable = false;
-        cell.removeAttribute('data-schedule-id');
-        cell.removeEventListener('dragstart', handleDragStart);
-        cell.removeEventListener('dragend', handleDragEnd);
     });
     // 그리드에 직접 추가된 이전 오버레이들을 모두 제거
     document.querySelectorAll('.subject-title-overlay').forEach(overlay => overlay.remove());
@@ -36,16 +32,12 @@ function renderSchedule() {
             const cell = document.querySelector(`.schedule-cell[data-day='${item.day}'][data-time='${currentSlotTime}']`);
 
             if (cell) {
-                // 셀 스타일링 로직 (이전과 동일)
                 cell.classList.add('colored');
                 cell.style.backgroundColor = subject.color;
-                cell.dataset.scheduleId = item.scheduleId;
-                cell.draggable = true;
-                cell.addEventListener('dragstart', handleDragStart);
-                cell.addEventListener('dragend', handleDragEnd);
-
+                cell.dataset.scheduleId = item.scheduleId; // 드래그 종료 시 opacity 복원을 위해 ID는 남겨둠
+                
                 if (i === 0) {
-                    firstCell = cell; // 첫 번째 셀 저장
+                    firstCell = cell;
                     cell.style.borderTopLeftRadius = '6px';
                     cell.style.borderTopRightRadius = '6px';
                 }
@@ -59,58 +51,71 @@ function renderSchedule() {
             }
         }
 
-        // ✨ [핵심] 오버레이 생성 및 그리드에 직접 추가
         if (firstCell) {
             const titleOverlay = document.createElement('div');
             titleOverlay.className = 'subject-title-overlay';
             titleOverlay.textContent = subject.title;
+            
+            // --- 이벤트 처리를 위한 속성 추가 ---
+            titleOverlay.draggable = true;
+            titleOverlay.dataset.scheduleId = item.scheduleId; // 드래그 시 ID 참조용
+            
+            // --- 모든 이벤트 리스너를 여기에 추가 ---
+            titleOverlay.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showContextMenu(e.pageX, e.pageY, item.scheduleId);
+            });
+            titleOverlay.addEventListener('dragstart', handleDragStart);
+            titleOverlay.addEventListener('dragend', handleDragEnd);
 
-            // 위치와 크기 계산
+            // --- 위치/크기 계산 (이전과 동일) ---
             titleOverlay.style.top = `${firstCell.offsetTop}px`;
             titleOverlay.style.left = `${firstCell.offsetLeft}px`;
             titleOverlay.style.width = `${firstCell.offsetWidth}px`;
-            // 높이는 (셀 높이 * 칸 수) + (칸 사이의 테두리 1px * (칸 수 - 1))
-            const totalHeight = durationSlots * firstCell.offsetHeight;
-            titleOverlay.style.height = `${totalHeight}px`;
+            titleOverlay.style.height = `${durationSlots * firstCell.offsetHeight}px`;
+            titleOverlay.style.borderRadius = '4px';
 
-            grid.appendChild(titleOverlay); // 그리드에 직접 추가
+            grid.appendChild(titleOverlay);
         }
     });
 }
 
-/**
- * ✨ [변경] 이제 이벤트의 대상(e.target)은 .subject-item이 아닌 .schedule-cell 입니다.
- */
 function handleDragStart(e) {
     const scheduleId = e.target.dataset.scheduleId;
     const scheduleItem = schedule.find(item => item.scheduleId === scheduleId);
-
+    
     if (scheduleItem) {
         draggedInfo = scheduleItem;
         e.dataTransfer.setData('text/plain', scheduleId);
         e.dataTransfer.effectAllowed = 'move';
 
-        // --- ✨ [핵심] 드래그 이미지를 동적으로 생성 ---
+        // --- 드래그 이미지 동적 생성 ---
         const subject = subjects.find(s => s.id === scheduleItem.subjectId);
         const durationSlots = Math.ceil(scheduleItem.duration / 30);
+        
+        // 실제 블록의 높이 계산
+        const blockHeight = durationSlots * e.target.offsetHeight;
+        const maxHeight = 400; // 고스트 이미지의 최대 높이 (px)
 
-        // 1. 고스트 요소 생성
         const dragGhost = document.createElement('div');
         dragGhost.className = 'drag-ghost';
         dragGhost.textContent = subject.title;
         dragGhost.style.backgroundColor = subject.color;
-        dragGhost.style.width = `${e.target.offsetWidth}px`; // 실제 셀의 너비
-        dragGhost.style.height = `${durationSlots * e.target.offsetHeight}px`; // 실제 블록의 높이
+        dragGhost.style.width = `${e.target.offsetWidth}px`;
+        
+        // ✨ [핵심] 높이가 maxHeight를 초과하는지 확인
+        if (blockHeight > maxHeight) {
+            dragGhost.style.height = `${maxHeight}px`;
+            dragGhost.classList.add('capped'); // CSS 스타일 적용을 위한 클래스 추가
+        } else {
+            dragGhost.style.height = `${blockHeight}px`;
+        }
 
-        // 2. body에 잠시 추가했다가 setDragImage로 사용
         document.body.appendChild(dragGhost);
-
-        // 3. 생성한 고스트 요소를 드래그 이미지로 설정 (커서 위치는 중앙으로)
         e.dataTransfer.setDragImage(dragGhost, e.target.offsetWidth / 2, 15);
 
-        // --- 드래그하는 원본 요소 스타일 변경 ---
+        // --- 원본 요소 스타일 변경 ---
         setTimeout(() => {
-            // 4. 사용이 끝난 고스트 요소를 DOM에서 제거
             document.body.removeChild(dragGhost);
         }, 0);
     }

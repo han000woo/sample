@@ -23,7 +23,7 @@
             <div id="schedule-controller">
                 <input type="file" id="file-input" accept=".xlsx, .xls" style="display: none;">
                 <button id="import-btn">엑셀 불러오기</button>
-                <button id="add-subject-btn">과목 추가</button>
+                <button id="add-subject-btn">일정 추가</button>
                 <button id="download-button">xlsx파일 생성</button>
                 <button id="reset-button">초기화</button>
             </div>
@@ -47,11 +47,13 @@
     <div id="modal-overlay" class="hidden">
         <div id="modal-content">
             <span id="modal-close-btn">&times;</span>
-            <h2>새 과목 추가</h2>
+            <h2>새 일정 추가</h2>
             <form id="subject-form">
+                <input type="hidden" id="editing-schedule-id">
+
                 <div class="form-group">
-                    <label for="subject-title">과목명</label>
-                    <input type="text" id="subject-title" required placeholder="예: 자료구조">
+                    <label for="subject-title">일정명</label>
+                    <input type="text" id="subject-title" required placeholder="예: 팀 회의">
                 </div>
                 <div class="form-group">
                     <label for="subject-day">요일</label>
@@ -80,6 +82,11 @@
                 <button type="submit" id="save-subject-btn">저장</button>
             </form>
         </div>
+    </div>
+
+    <div id="context-menu" class="hidden">
+        <button id="edit-btn">✏️ 수정</button>
+        <button id="delete-btn">🗑️ 삭제</button>
     </div>
     <script src="modal.js"></script>
     <script src="data.js"></script>

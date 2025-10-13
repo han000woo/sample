@@ -91,3 +91,37 @@
 #save-subject-btn:hover {
     background-color: var(--primary-hover-color);
 }
+
+#context-menu {
+    position: absolute;
+    z-index: 1500;
+    background-color: white;
+    border: 1px solid var(--gray-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    padding: 5px;
+}
+
+#context-menu button {
+    background: none;
+    border: none;
+    padding: 10px 15px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px; /* 아이콘과 텍스트 사이 간격 */
+}
+
+#context-menu button:hover {
+    background-color: var(--light-gray-color);
+}
+
+#delete-btn:hover {
+    background-color: #ffe3e3;
+    color: var(--danger-color);
+}

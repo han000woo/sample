@@ -3,6 +3,7 @@ const modalOverlay = document.getElementById('modal-overlay');
 const modalContent = document.getElementById('modal-content');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 const subjectForm = document.getElementById('subject-form');
+const contextMenu = document.getElementById('context-menu');
 
 // ==========================================================
 // ✨ 1. 모달 관련 함수들
@@ -13,16 +14,34 @@ const subjectForm = document.getElementById('subject-form');
  * @param {object} data - { day, startTime } 셀 클릭 시 전달되는 데이터
  */
 function openModal(data = {}) {
-    subjectForm.reset(); // 폼 초기화
-    populateTimeOptions(); // 시간 옵션 채우기
+    subjectForm.reset();
+    populateTimeOptions();
 
-    // 셀 클릭 시 전달된 데이터로 폼 기본값 설정
-    if (data.day) subjectForm['subject-day'].value = data.day;
-    if (data.startTime) subjectForm['subject-start-time'].value = data.startTime;
+    const modalTitle = document.querySelector('#modal-content h2');
+    const editingIdInput = document.getElementById('editing-schedule-id');
 
-    // 현재 폼 값 기준으로 공부 시간 옵션 동적 업데이트
-    updateDurationOptions();
-    
+    // 수정 모드인 경우 (data에 scheduleId가 있을 때)
+    if (data.scheduleId) {
+        modalTitle.textContent = '과목 수정';
+        editingIdInput.value = data.scheduleId;
+        subjectForm['subject-title'].value = data.title;
+        subjectForm['subject-day'].value = data.day;
+        subjectForm['subject-start-time'].value = data.startTime;
+        subjectForm['subject-color'].value = data.color;
+
+        // 공부 시간 옵션을 업데이트하고 기존 값을 선택
+        updateDurationOptions(data.scheduleId); // 자기 자신을 충돌 검사에서 제외
+        subjectForm['subject-duration'].value = data.duration;
+    }
+    // 추가 모드인 경우
+    else {
+        modalTitle.textContent = '새 과목 추가';
+        editingIdInput.value = ''; // ID 필드 비우기
+        if (data.day) subjectForm['subject-day'].value = data.day;
+        if (data.startTime) subjectForm['subject-start-time'].value = data.startTime;
+        updateDurationOptions();
+    }
+
     modalOverlay.classList.remove('hidden');
 }
 
@@ -42,21 +61,20 @@ function updateDurationOptions() {
     // 선택된 요일, 시작 시간부터 연속으로 비어있는 최대 시간(분) 계산
     let maxDuration = 0;
     let available = true;
-    while(available) {
+    while (available) {
         const nextTime = minutesToTime(timeToMinutes(startTime) + maxDuration);
         // 시간표 끝을 넘어가면 중단
         if (timeToMinutes(nextTime) >= endH * 60) {
-             available = false;
-             continue;
+            available = false;
+            continue;
         }
-
-        if (isTimeSlotAvailable(day, nextTime, 30, null)) {
+        if (isTimeSlotAvailable(day, nextTime, 30, ignoreId)) { // ignoreId 전달
             maxDuration += 30;
         } else {
             available = false;
         }
     }
-    
+
     // 계산된 최대 시간까지 30분 단위로 옵션 추가
     for (let min = 30; min <= maxDuration; min += 30) {
         const option = document.createElement('option');
@@ -66,7 +84,7 @@ function updateDurationOptions() {
         option.textContent = `${hours > 0 ? `${hours}시간` : ''} ${mins > 0 ? `${mins}분` : ''}`.trim();
         durationSelect.appendChild(option);
     }
-    
+
     if (durationSelect.options.length === 0) {
         const option = document.createElement('option');
         option.textContent = '추가할 수 있는 시간이 없습니다';
@@ -80,7 +98,8 @@ function updateDurationOptions() {
  */
 function handleFormSubmit(e) {
     e.preventDefault();
-    
+
+    const editingId = document.getElementById('editing-schedule-id').value;
     const title = subjectForm['subject-title'].value;
     const day = subjectForm['subject-day'].value;
     const startTime = subjectForm['subject-start-time'].value;
@@ -92,36 +111,45 @@ function handleFormSubmit(e) {
         return;
     }
 
-    // 최종 충돌 검사
-    if (!isTimeSlotAvailable(day, startTime, duration, null)) {
+    // 최종 충돌 검사 (수정 모드일 경우 자기 자신은 제외)
+    if (!isTimeSlotAvailable(day, startTime, duration, editingId || null)) {
         alert('해당 시간에 이미 다른 과목이 있습니다. 시간을 다시 확인해주세요.');
         return;
     }
-    
-    // 과목이 이미 존재하는지 확인, 없으면 새로 생성
+
+    // 과목 정보 가져오기 또는 생성
     let subject = subjects.find(s => s.title.toLowerCase() === title.toLowerCase());
     if (!subject) {
-        subject = {
-            id: Date.now(), // 고유 ID
-            title: title,
-            color: color
-        };
+        subject = { id: Date.now(), title: title, color: color };
         subjects.push(subject);
+    } else {
+        // 기존 과목의 색상이 변경되었을 수 있으므로 업데이트
+        subject.color = color;
     }
 
-    // 새 스케줄 항목 생성
-    const newScheduleItem = {
-        scheduleId: 's' + Date.now(), // 고유 ID
-        subjectId: subject.id,
-        day: day,
-        startTime: startTime,
-        duration: duration
-    };
-    schedule.push(newScheduleItem);
-    
+    // 수정 모드
+    if (editingId) {
+        const scheduleItem = schedule.find(item => item.scheduleId === editingId);
+        scheduleItem.subjectId = subject.id;
+        scheduleItem.day = day;
+        scheduleItem.startTime = startTime;
+        scheduleItem.duration = duration;
+    }
+    // 추가 모드
+    else {
+        schedule.push({
+            scheduleId: 's' + Date.now(),
+            subjectId: subject.id,
+            day: day,
+            startTime: startTime,
+            duration: duration
+        });
+    }
+
     renderSchedule();
     closeModal();
 }
+
 
 function initializeModal() {
     modalCloseBtn.addEventListener('click', closeModal);
@@ -129,7 +157,7 @@ function initializeModal() {
         if (e.target === modalOverlay) closeModal();
     });
     subjectForm.addEventListener('submit', handleFormSubmit);
-    
+
     // 요일이나 시작 시간이 변경될 때마다 공부 시간 옵션 다시 계산
     subjectForm['subject-day'].addEventListener('change', updateDurationOptions);
     subjectForm['subject-start-time'].addEventListener('change', updateDurationOptions);
@@ -152,4 +180,52 @@ function populateTimeOptions() {
             startTimeSelect.appendChild(option);
         }
     }
+}
+
+
+function showContextMenu(x, y, scheduleId) {
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
+    contextMenu.classList.remove('hidden');
+
+    // 메뉴 버튼에 대한 이벤트 리스너 설정 (한 번만 실행되도록 .once 사용)
+    const editBtn = document.getElementById('edit-btn');
+    const deleteBtn = document.getElementById('delete-btn');
+
+    editBtn.onclick = () => {
+        handleEdit(scheduleId);
+        hideContextMenu();
+    };
+    deleteBtn.onclick = () => {
+        handleDelete(scheduleId);
+        hideContextMenu();
+    };
+
+    // 다른 곳을 클릭하면 메뉴가 닫히도록 설정
+    setTimeout(() => window.addEventListener('click', hideContextMenu, { once: true }), 0);
+}
+
+function hideContextMenu() {
+    contextMenu.classList.add('hidden');
+}
+
+function handleDelete(scheduleId) {
+    schedule = schedule.filter(item => item.scheduleId !== scheduleId);
+    renderSchedule();
+}
+
+function handleEdit(scheduleId) {
+    const scheduleItem = schedule.find(item => item.scheduleId === scheduleId);
+    const subjectItem = subjects.find(s => s.id === scheduleItem.subjectId);
+    if (!scheduleItem || !subjectItem) return;
+
+    // 모달을 열고 기존 데이터로 폼 채우기
+    openModal({
+        scheduleId: scheduleItem.scheduleId,
+        title: subjectItem.title,
+        day: scheduleItem.day,
+        startTime: scheduleItem.startTime,
+        duration: scheduleItem.duration,
+        color: subjectItem.color,
+    });
 }
