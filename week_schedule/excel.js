@@ -117,16 +117,10 @@ function convertExcelTime(excelTime) {
     return `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`;
 }
 
-function getRandomColor() {
-    return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-}
 
 function handleImageExport() {
     // 1. 캡처할 영역을 선택합니다. '.main-container'는 제목까지 포함합니다.
     const captureArea = document.querySelector('.main-container');
-
-    // 로딩 스피너나 "이미지 생성 중..." 메시지를 표시하면 사용자 경험이 좋아집니다 (선택사항)
-    alert('이미지 생성을 시작합니다. 잠시만 기다려주세요...');
 
     // 2. html2canvas를 사용하여 선택한 영역을 캡처합니다.
     html2canvas(captureArea, {
@@ -154,4 +148,23 @@ function handleImageExport() {
         console.error("이미지 캡처 중 오류 발생:", error);
         alert("이미지를 생성하는 데 실패했습니다.");
     });
+}
+
+function handleDownloadDemo() {
+    // 1. 임시 <a> 태그(링크) 생성
+    const link = document.createElement('a');
+
+    // 2. 다운로드할 파일의 경로 설정
+    //    (HTML 파일을 기준으로 data 폴더 안의 demo.xlsx 파일을 가리킵니다)
+    link.href = 'data/demo.xlsx';
+
+    // 3. 다운로드 시 저장될 파일 이름 지정
+    link.download = '일정_입력_양식.xlsx';
+
+    // 4. body에 임시 링크를 추가하고 클릭 이벤트를 실행
+    document.body.appendChild(link);
+    link.click();
+
+    // 5. 다운로드를 실행한 후 임시 링크를 제거
+    document.body.removeChild(link);
 }

@@ -223,6 +223,7 @@ function initializeButtons() {
     const fileInput = document.getElementById('file-input');
     const resetBtn = document.getElementById('reset-button');
     const downloadBtn = document.getElementById('download-button');
+    const demoDownloadBtn = document.getElementById('demo-download-btn');
 
     addSubjectBtn.addEventListener('click', () => {
         openModal();
@@ -245,9 +246,12 @@ function initializeButtons() {
 
     downloadBtn.addEventListener('click', () => {
         handleImageExport();
+    });
+
+    demoDownloadBtn.addEventListener('click', () => {
+        handleDownloadDemo();
     })
 
-    
 }
 
 // --- 유틸리티 함수들 ---
@@ -257,7 +261,7 @@ function timeToMinutes(time) { // "HH:MM" -> 분
     return hours * 60 + minutes;
 }
 function minutesToTime(minutes) { // 분 -> "HH:MM"
-    const hours = String(Math.floor(minutes / 60)).padStart(2, '0');
+    const hours = String(Math.floor(minutes / 60) % 24).padStart(2, '0');
     const mins = String(minutes % 60).padStart(2, '0');
     return `${hours}:${mins}`;
 }

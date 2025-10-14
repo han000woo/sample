@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeButtons();
     initializeDragAndDrop();
     initializeModal(); //모달 초기화 함수 호출
-
+    initializeBatchContainer();
 });
 
 // 빈 시간표 틀을 생성하는 함수 (기존과 유사하나 일부 수정)

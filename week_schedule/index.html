@@ -13,6 +13,7 @@
 
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="modal.css">
+    <link rel="stylesheet" href="random.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -35,13 +36,35 @@
             </div>
         </div>
         <div class="batch-container">
+            <h2>📝 배치할 일정 목록</h2>
 
-            <h2>랜덤배치</h2>
+            <form id="batch-form">
+                <input type="text" id="task-title" placeholder="일정 이름 (예: 알고리즘 공부)" required>
+                <div class="duration-input">
+                    <input type="number" id="task-duration" placeholder="시간" min="0" step="1">
+                    <span>시간</span>
+                    <input type="number" id="task-duration-min" placeholder="분" min="0" step="30">
+                    <span>분</span>
+                </div>
+                <button type="submit" title="목록에 추가">추가</button>
+            </form>
+
+            <div id="batch-list">
+            </div>
+
+            <button id="batch-place-btn">
+                <span class="material-icons">auto_awesome</span>
+                평일 빈 시간에 자동 배치
+            </button>
         </div>
     </div>
 
     <div id="schedule-controller" draggable="true">
         <input type="file" id="file-input" accept=".xlsx, .xls, .csv" style="display: none;">
+
+        <button id="demo-download-btn" title="엑셀 양식 저장">
+            <span class="material-icons">file_download</span>
+        </button>
 
         <button id="import-btn" title="엑셀 불러오기">
             <span class="material-icons">upload_file</span>
@@ -104,6 +127,8 @@
         <button id="edit-btn">✏️ 수정</button>
         <button id="delete-btn">🗑️ 삭제</button>
     </div>
+    <script src="util.js"></script>
+    <script src="random.js"></script>
     <script src="excel.js"></script>
     <script src="modal.js"></script>
     <script src="data.js"></script>
