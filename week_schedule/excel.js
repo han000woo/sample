@@ -118,36 +118,56 @@ function convertExcelTime(excelTime) {
 }
 
 
-function handleImageExport() {
-    // 1. 캡처할 영역을 선택합니다. '.main-container'는 제목까지 포함합니다.
+async function handleImageExport() {
     const captureArea = document.querySelector('.main-container');
+    const loadingMessage = document.createElement('div');
 
-    // 2. html2canvas를 사용하여 선택한 영역을 캡처합니다.
-    html2canvas(captureArea, {
-        allowTaint: true, // 다른 도메인의 이미지를 허용 (필요 시)
-        useCORS: true,    // CORS를 사용하는 이미지 로드
-        scale: 2,         // 해상도를 2배로 높여 더 선명한 이미지 생성
-        backgroundColor: '#f0f2f5' // 캡처 영역 바깥의 배경색 지정
-    }).then(canvas => {
-        // 3. 캡처된 결과를 이미지 URL로 변환합니다.
-        const imageUrl = canvas.toDataURL('image/png');
+    // 1. 사용자에게 작업이 진행 중임을 알리는 메시지 표시
+    loadingMessage.textContent = '이미지 생성 중... 잠시만 기다려주세요.';
+    loadingMessage.style.cssText = `
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        padding: 20px 40px; background-color: rgba(0,0,0,0.7); color: white;
+        border-radius: 10px; z-index: 9999;
+    `;
+    document.body.appendChild(loadingMessage);
 
-        // 4. 임시 <a> 태그를 만들어 다운로드를 실행합니다.
+    try {
+        // 2. html2canvas를 사용하여 안정적인 옵션으로 캡처
+        const canvas = await html2canvas(captureArea, {
+            // ✨ [핵심] 외부 리소스를 더 잘 처리하기 위한 옵션들
+            allowTaint: true,
+            useCORS: true,
+            logging: false, // 콘솔 로그를 비활성화하여 깔끔하게
+
+            // ✨ 렌더링 품질 향상 옵션
+            scale: window.devicePixelRatio, // 기기의 픽셀 비율에 맞춰 선명하게
+            scrollX: -window.scrollX,
+            scrollY: -window.scrollY,
+            windowWidth: document.documentElement.offsetWidth,
+            windowHeight: document.documentElement.offsetHeight
+        });
+
+        // 3. 캡처된 결과를 이미지 URL로 변환
+        const imageUrl = canvas.toDataURL('image/png', 1.0); // 품질 100%
+
+        // 4. 임시 <a> 태그를 만들어 다운로드 실행
         const link = document.createElement('a');
-
-        // 파일 이름을 '주간시간표_YYYY-MM-DD.png' 형식으로 만듭니다.
         const today = new Date();
         const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         link.download = `주간시간표_${dateString}.png`;
-
         link.href = imageUrl;
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    }).catch(error => {
+
+    } catch (error) {
         console.error("이미지 캡처 중 오류 발생:", error);
-        alert("이미지를 생성하는 데 실패했습니다.");
-    });
+        alert("이미지를 생성하는 데 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+        // 5. 성공하든 실패하든 로딩 메시지 제거
+        document.body.removeChild(loadingMessage);
+    }
 }
 
 function handleDownloadDemo() {
