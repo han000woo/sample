@@ -5,7 +5,9 @@
 ---
 
 ## 📸 스크린샷
+<img width="1864" height="873" alt="image" src="https://github.com/user-attachments/assets/94623903-0bcd-4cd5-9169-aa962a947fa5" />
 
+<img width="1877" height="851" alt="image" src="https://github.com/user-attachments/assets/b8bf7fa8-177c-4bf3-a6b4-46f9f571166c" />
 ---
 
 ## ✨ 주요 기능
