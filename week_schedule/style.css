@@ -1,307 +1,813 @@
-/* ----- Google Fonts Import ----- */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
-
-/* ----- CSS Variables (전체 디자인 테마 설정) ----- */
+/* ========================================================== */
+/* 1. 기본 설정 및 변수 */
+/* ========================================================== */
 :root {
-    --primary-color: #4A90E2;
-    /* 메인 색상 (파란색 계열) */
-    --primary-hover-color: #357ABD;
-    /* 메인 색상 호버 */
-    --secondary-color: #F5A623;
-    /* 보조 색상 (주황색 계열) */
-    --danger-color: #D0021B;
-    /* 삭제/초기화 색상 */
-    --danger-hover-color: #a80015;
-    --light-gray-color: #f8f9fa;
-    /* 밝은 회색 (배경) */
-    --gray-color: #e9ecef;
-    /* 중간 회색 (테두리) */
-    --dark-gray-color: #495057;
-    /* 어두운 회색 (기본 텍스트) */
-    --text-color: #212529;
-    /* 제목 등 중요 텍스트 */
+    --primary-color: #3498db;
+    --primary-hover-color: #2980b9;
+    --secondary-color: #f39c12;
+    --danger-color: #e74c3c;
+    --danger-hover-color: #c0392b;
     --background-color: #f0f2f5;
-    /* 페이지 전체 배경색 */
-    --surface-color: #ffffff;
-    /* 컨텐츠 영역 배경색 */
+    --text-color: #333;
+    --gray-color: #ccc;
+    --dark-gray-color: #777;
+    --light-gray-color: #eee;
+    --grid-border-color: #e0e0e0;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     --border-radius: 8px;
-    /* 테두리 둥글기 */
-    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    /* 그림자 효과 */
 }
 
-/* ----- General Styles ----- */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+html {
+    font-size: 16px;
 }
 
 body {
     font-family: 'Noto Sans KR', sans-serif;
     background-color: var(--background-color);
-    color: var(--dark-gray-color);
-    padding: 20px;
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
     line-height: 1.6;
-    outline: none;
+    overflow-x: hidden;
 }
 
-/* ----- Layout Containers ----- */
+h1 {
+    font-size: 2rem;
+    text-align: center;
+    color: var(--primary-color);
+}
+
+h2 {
+    font-size: 1.5rem;
+    margin-top: 0;
+    color: var(--text-color);
+}
+
+button {
+    font-family: 'Noto Sans KR', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* ========================================================== */
+/* 2. 메인 레이아웃 (시간표 + 사이드바) */
+/* ========================================================== */
 .container {
     display: flex;
-    gap: 24px;
-    /* 메인 컨테이너와 배치 컨테이너 사이 간격 */
+    padding: 20px;
+    width: 100%;
 }
 
 .main-container {
-    width: 2000px;
+    position: relative;
     flex-grow: 1;
-    /* 남는 공간을 모두 차지하도록 설정 */
-    background: var(--surface-color);
-    padding: 24px;
+    background-color: white;
+    padding: 20px;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
 }
 
-/* ----- Typography ----- */
-h1,
-h2 {
-    color: var(--text-color);
-    text-align: center;
-    margin-bottom: 24px;
-}
-
-h1 {
-    font-size: 2em;
-    /* 폰트 크기 증가 */
-    font-weight: 700;
-}
-
-h2 {
-    font-size: 1.5em;
-    font-weight: 500;
-}
-
-/* ----- Controller & Buttons ----- */
-#schedule-controller {
-    /* --- 위치 설정 (리모콘처럼 만들기) --- */
-    position: fixed;
-    /* 화면 뷰포트에 고정 (스크롤해도 움직이지 않음) */
-    bottom: 30px;
-    /* 화면 하단에서 30px 위로 띄움 */
-    left: 50%;
-    /* 왼쪽 끝을 화면의 50% 지점으로 이동 */
-    transform: translateX(-50%);
-    /* 자신의 너비의 50%만큼 왼쪽으로 당겨 완벽한 중앙 정렬 */
-    z-index: 1000;
-    /* 다른 모든 요소들 위에 표시되도록 설정 */
-
-    /* --- 디자인 (깔끔한 리모콘 모양) --- */
-    background-color: rgba(255, 255, 255, 0.9);
-    /* 살짝 비치는 흰색 배경 */
-    padding: 12px 20px;
-    /* 내부 여백 (좌우로 더 넓게) */
-    border-radius: 50px;
-    /* 둥근 모서리로 알약 모양 만들기 */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    /* 입체감을 주는 그림자 효과 */
-    backdrop-filter: blur(8px);
-    /* 배경을 흐릿하게 만들어 고급스러운 느낌 (지원 브라우저) */
-
-    /* --- 내부 버튼 정렬 --- */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 16px;
-    /* 버튼 사이 간격을 살짝 넓힘 */
-}
-
-#schedule-controller button {
-    padding: 8px;
-    border: none;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 500;
-    transition: all 0.2s ease-in-out;
-    color: white;
-    caret-color: transparent;
-}
-
-
-/* 버튼별 색상 지정 */
-#import-btn,
-#demo-download-btn,
-#add-subject-btn {
-    background-color: var(--primary-color);
-}
-
-#import-btn:hover,
-#demo-download-btn:hover,
-#add-subject-btn:hover {
-    background-color: var(--primary-hover-color);
-    transform: translateY(-2px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-#download-button {
-    background-color: var(--secondary-color);
-}
-
-#download-button:hover {
-    background-color: #d9901f;
-    transform: translateY(-2px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-#reset-button {
-    background-color: var(--danger-color);
-}
-
-#reset-button:hover {
-    background-color: var(--danger-hover-color);
-    transform: translateY(-2px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-
-/* ----- Schedule Grid ----- */
+/* ========================================================== */
+/* 3. 시간표 그리드 */
+/* ========================================================== */
 .grid {
     display: grid;
-    grid-template-columns: 80px repeat(7, 1fr);
-    /* 8개 열 구조는 유지 */
-    grid-auto-rows: 30px;
-    /* ✨ 모든 행의 높이를 30px로 자동 설정 (핵심!) */
-    border: 1px solid var(--gray-color);
-    border-radius: var(--border-radius);
+    grid-template-columns: 0.8fr repeat(7, 1fr);
+    border: 1px solid var(--grid-border-color);
+    border-radius: 4px;
     overflow: hidden;
-    position: relative;
+    grid-auto-rows: 1.875rem;
+    /* 30px */
 }
 
-/* 헤더와 셀의 공통 스타일 */
 .day-header,
-.time-slot,
+.time-label,
 .schedule-cell {
-    box-sizing: border-box;
     display: flex;
-    /* Flexbox로 내부 정렬을 쉽게 합니다 */
     align-items: center;
     justify-content: center;
+    border-bottom: 1px solid var(--grid-border-color);
+    border-right: 1px solid var(--grid-border-color);
+    font-size: 0.85rem;
+    user-select: none;
 }
 
 .day-header {
-    background-color: var(--light-gray-color);
-    font-weight: 500;
+    background-color: #f9f9f9;
+    font-weight: 700;
     padding: 10px 5px;
-    height: auto;
-    /* 높이를 자동으로 설정하여 내용에 맞춤 */
-    border-bottom: 1px solid var(--gray-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
-.time-slot {
-    font-size: 14px;
-    color: #6c757d;
-    background-color: var(--light-gray-color);
-    /* justify-content: flex-end; */
-    /* padding-right: 8px; */
+.time-label {
+    background-color: #fdfdfd;
+    font-size: 0.8rem;
+    color: var(--dark-gray-color);
 }
 
 .schedule-cell {
-    transition: background-color 0.2s ease;
-    cursor: pointer;
-}
-
-.schedule-cell:hover {
-    background-color: #e7f5ff;
-}
-
-/* 모든 셀의 테두리 설정 (Grid의 직계 자식 요소) */
-.grid>div {
-    border-right: 1px solid var(--gray-color);
-    border-bottom: 1px solid var(--gray-color);
-}
-
-/* 맨 오른쪽 컬럼의 오른쪽 테두리 제거 */
-.grid>div:nth-child(8n) {
-    border-right: none;
-}
-
-
-
-/* 드롭이 허용되는 칸 스타일 */
-.schedule-cell.drop-allowed {
-    background-color: #d4edda;
-    /* 연한 초록색 */
-    border: 2px dashed #28a745;
-}
-
-/* 드롭이 금지되는 칸 스타일 */
-.schedule-cell.drop-forbidden {
-    background-color: #f8d7da;
-    /* 연한 빨간색 */
-    border: 2px dashed #dc3545;
-    cursor: not-allowed;
-}
-
-/* ✨ [추가] 색칠된 셀의 커서를 grab으로 변경 */
-.schedule-cell[draggable="true"] {
-    cursor: grab;
-    user-select: none;
-    /* 텍스트 선택 방지 */
-}
-
-.schedule-cell[draggable="true"]:active {
-    cursor: grabbing;
-}
-
-/* ✨ [추가] 색칠된 셀에 적용할 스타일 */
-.schedule-cell.colored {
     position: relative;
-    /* z-index를 적용하기 위해 필요 */
     z-index: 1;
-    /* 다른 셀의 테두리 위로 올라오도록 설정 */
-    color: white;
-    text-align: center;
-    font-weight: 500;
-    font-size: 14px;
-    /* transition을 추가하면 부드러운 효과를 줄 수 있습니다 */
-    transition: background-color 0.2s, opacity 0.2s;
 }
 
-/* ✨ [신규] 과목명 텍스트를 위한 오버레이 스타일 */
+/* 일정이 채워진 셀 */
+.colored {
+    opacity: 1;
+    transition: opacity 0.2s;
+}
+
+/* 일정 제목 오버레이 */
 .subject-title-overlay {
     position: absolute;
-    z-index: 10;
+    z-index: 5;
+    padding: 8px;
     color: white;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    padding: 0 4px;
-    text-align: center;
-    align-items: center;
-    justify-content: center;
-    /* pointer-events: none; */
-    line-height: 1.2;
-    box-sizing: border-box;
-    overflow: visible;
+    font-weight: 500;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: pre-line;
+    cursor: pointer;
+    border-radius: 4px;
 }
 
+/* 드래그 고스트 */
 .drag-ghost {
     position: absolute;
     left: -1000px;
-    /* 화면 밖에 위치시켜 보이지 않게 함 */
     width: 40px;
-    /* 동그라미 너비 */
     height: 40px;
-    /* 동그라미 높이 */
     border-radius: 50%;
-    /* 완벽한 원으로 만들기 */
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 20px;
-    /* 이모지 크기 */
     z-index: 2000;
-    /* 그림자 효과를 주면 더 입체적으로 보입니다. */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ========================================================== */
+/* 4. 자동 배치 사이드바 (Batch Container) */
+/* ========================================================== */
+.batch-container {
+    width: 400px;
+    background-color: #f8f9fa;
+    box-shadow: var(--shadow);
+    border-radius: var(--border-radius);
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.batch-header {
+    padding: 20px 20px 15px 20px;
+    text-align: left;
+}
+
+.batch-header h2 {
+    margin: 0;
+}
+
+/* 중요도별 목표 시간 설정 */
+#priority-settings {
+    background-color: #e9ecef;
+}
+
+/* 토글 헤더 (클릭 영역) */
+.priority-toggle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    cursor: pointer;
+}
+
+.priority-toggle-header label {
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 0;
+    /* 기존 margin 제거 */
+    cursor: pointer;
+}
+
+.priority-toggle-header .chevron {
+    transition: transform 0.3s ease;
+}
+
+/* 내용 영역 (숨겨질 부분) */
+.priority-content {
+    max-height: 0;
+    /* 기본적으로 닫힘 */
+    overflow: hidden;
+    transition: max-height 0.4s ease-out;
+}
+
+.priority-list {
+    padding: 0 20px 15px 20px;
+    /* 토글 헤더의 패딩과 맞춤 */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* 열렸을 때의 스타일 */
+#priority-settings:not(.is-collapsed) .priority-content {
+    max-height: 500px;
+    /* 열렸을 때의 최대 높이 (충분히 크게) */
+    transition: max-height 0.4s ease-in;
+}
+
+#priority-settings:not(.is-collapsed) .priority-toggle-header .chevron {
+    transform: rotate(180deg);
+    /* 화살표 회전 */
+}
+
+#priority-settings label {
+    font-weight: bold;
+    font-size: 0.8rem;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.priority-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.priority-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* (기존 .priority-item input 스타일을 select 스타일로 교체) */
+.priority-item select {
+    width: 60px; /* 시간/분 선택에 적절한 너비 */
+    text-align: center;
+    font-weight: bold;
+    padding: 6px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.9rem;
+    background-color: white; /* select 배경색 */
+}
+
+.priority-item .priority-badge {
+    flex-shrink: 0;
+}
+
+.priority-item input {
+    width: 3rem;
+    text-align: center;
+    font-weight: bold;
+    padding: 6px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+.priority-item em {
+    font-style: normal;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+/* 배치할 일정 목록 */
+.batch-list-section {
+    padding: 15px 20px 10px 20px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.batch-list-section label {
+    font-weight: bold;
+    font-size: 0.8rem;
+    display: block;
+    margin-bottom: 12px;
+}
+
+/* 일정 추가 폼 */
+/* style.css */
+
+/* ----- Batch Container Styles (일부 교체 및 추가) ----- */
+
+/* (기존 .batch-list-section, #priority-settings 등은 그대로 둡니다) */
+
+/* ----- 일정 추가 폼 (batch-form) 수정 ----- */
+#batch-form {
+    display: flex;
+    flex-direction: column;
+    /* 세로 정렬로 변경 */
+    gap: 15px;
+    /* 컴포넌트 사이 간격 */
+    margin-bottom: 15px;
+    border-top: 1px solid #e9ecef;
+    padding-top: 15px;
+}
+
+/* 1. 일정 이름 입력칸 (Textarea) */
+#task-title {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--gray-color);
+    border-radius: 5px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 1rem;
+    resize: vertical;
+    /* 세로 크기만 조절 가능 */
+}
+
+/* 2. 폼 행 (날짜, 중요도) */
+.form-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-row label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+#task-due-date {
+    padding: 8px;
+    border: 1px solid var(--gray-color);
+    border-radius: 5px;
+    font-family: 'Noto Sans KR', sans-serif;
+    flex-grow: 1;
+}
+
+/* 3. 중요도 선택 버튼 그룹 */
+.priority-buttons-group {
+    display: flex;
+    gap: 8px;
+    flex-grow: 1;
+}
+
+.priority-select-btn {
+    flex-grow: 1;
+    padding: 8px;
+    border: 2px solid var(--gray-color);
+    background-color: #f0f0f0;
+    color: #555;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+/* 활성화된 버튼 스타일 */
+.priority-select-btn.active {
+    color: white;
+    font-weight: bold;
+}
+
+/* 중요도별 활성 스타일 */
+.priority-select-btn[data-priority="A"].active {
+    background-color: #D32F2F;
+    border-color: #D32F2F;
+}
+
+.priority-select-btn[data-priority="C"].active {
+    background-color: #388E3C;
+    border-color: #388E3C;
+}
+
+.priority-select-btn[data-priority="E"].active {
+    background-color: #7B1FA2;
+    border-color: #7B1FA2;
+}
+
+/* 4. 최종 추가 버튼 (기존 아이콘 버튼 스타일 교체) */
+#batch-form button[type="submit"] {
+    width: 100%;
+    height: auto;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    /* (기존 버튼 스타일이 덮어써지도록 !important를 사용하거나, 기존 스타일을 수정하세요) */
+    border-radius: 5px !important;
+    background-color: var(--primary-color) !important;
+}
+
+/* ----- 일정 목록 UI 수정 (마감일 추가) ----- */
+.task-info {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.task-details {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.task-title {
+    font-weight: 500;
+    white-space: pre-line;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-due-date {
+    font-size: 0.8rem;
+    color: var(--danger-color);
+    font-weight: 500;
+}
+
+#batch-form input,
+#batch-form select {
+    padding: 10px;
+    border: 1px solid var(--gray-color);
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+#task-title {
+    flex-grow: 1;
+}
+
+#batch-form button {
+    padding: 0;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 일정이 나열될 리스트 */
+#batch-list {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.task-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.priority-badge {
+    font-weight: bold;
+    font-size: 0.75rem;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.priority-badge.prio-A {
+    background-color: #D32F2F;
+}
+
+.priority-badge.prio-B {
+    background-color: #F57C00;
+}
+
+.priority-badge.prio-C {
+    background-color: #388E3C;
+}
+
+.priority-badge.prio-D {
+    background-color: #1976D2;
+}
+
+.priority-badge.prio-E {
+    background-color: #7B1FA2;
+}
+
+.task-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--dark-gray-color);
+    font-size: 1.1rem;
+    padding: 2px;
+}
+
+/* 자동 배치 실행 버튼 */
+#batch-place-btn {
+    margin: 20px;
+    padding: 15px;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+/* ========================================================== */
+/* 5. 플로팅 컨트롤러 (리모콘) */
+/* ========================================================== */
+/* 버튼 기본 스타일 (플로팅 스타일 제거) */
+.controller-buttons {
+    right: 20px;
+    top: 40px;
+    position: absolute;
+    display: flex;
+    gap: 8px;
+}
+
+.controller-buttons button {
+    border: none;
+    border-radius: 50%;
+    width: 3.5rem;
+    /* 40px */
+    height: 3.5rem;
+    /* 40px */
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.4rem;
+    /* 22px */
+    background-color: transparent;
+    /* 배경 투명하게 */
+}
+
+/* 포커스 스타일 */
+.controller-buttons button:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.5);
+}
+
+/* 버튼 색상 (아이콘 색상만 지정) */
+#demo-download-btn,
+#import-btn,
+#add-subject-btn {
+    color: var(--primary-color);
+}
+
+#download-button {
+    color: var(--secondary-color);
+}
+
+#reset-button {
+    color: var(--danger-color);
+}
+
+/* 호버 효과 (배경색 살짝 추가) */
+#demo-download-btn:hover,
+#import-btn:hover,
+#add-subject-btn:hover {
+    background-color: #f0f0f0;
+    color: var(--primary-hover-color);
+}
+
+#download-button:hover {
+    background-color: #f0f0f0;
+    color: #d9901f;
+}
+
+#reset-button:hover {
+    background-color: #f0f0f0;
+    color: var(--danger-hover-color);
+}
+
+/* ========================================================== */
+/* 6. 모달 및 컨텍스트 메뉴 */
+/* ========================================================== */
+#modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+#modal-overlay.hidden {
+    display: none;
+}
+
+#modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 450px;
+    position: relative;
+}
+
+#modal-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--gray-color);
+    cursor: pointer;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--gray-color);
+    border-radius: 5px;
+    font-size: 0.95rem;
+    font-family: 'Noto Sans KR', sans-serif;
+}
+
+.form-group input[type="color"] {
+    width: 100%;
+    height: 48px;
+    padding: 0 5px;
+}
+
+.form-group-row {
+    display: flex;
+    gap: 20px;
+}
+
+.form-group-row .form-group {
+    width: 100%;
+}
+
+#form-submit-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#context-menu {
+    position: absolute;
+    z-index: 3000;
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+#context-menu.hidden {
+    display: none;
+}
+
+#context-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 8px 0;
+}
+
+#context-menu li {
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+#context-menu li:hover {
+    background-color: #f5f5f5;
+}
+
+#context-delete {
+    color: var(--danger-color);
+}
+
+/* ========================================================== */
+/* 7. 반응형 디자인 */
+/* ========================================================== */
+@media (max-width: 1200px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .batch-container {
+        width: 100%;
+        height: auto;
+        margin-left: 0;
+        max-height: 500px;
+    }
+
+    .main-container {
+        order: -1;
+    }
+}
+
+@media (min-width: 1920px) {
+    html {
+        font-size: 18px;
+    }
+
+    .batch-container {
+        width: 360px;
+    }
+}
+
+@media (min-width: 2560px) {
+    html {
+        font-size: 20px;
+    }
+
+    .batch-container {
+        width: 400px;
+    }
+
+    #schedule-controller {
+        bottom: 40px;
+    }
+}
+
+/* ========================================================== */
+/* 8. 드래그 앤 드롭 표시기 */
+/* ========================================================== */
+.drag-over-valid {
+    background-color: rgba(6, 214, 160, 0.2);
+    /* 옅은 초록색 */
+    border: 1px dashed rgba(6, 214, 160, 1);
+}
+
+.drag-over-invalid {
+    background-color: rgba(255, 107, 107, 0.2);
+    /* 옅은 빨간색 */
+    border: 1px dashed rgba(255, 107, 107, 1);
+}
+
+/* ========================================================== */
+/* 9. 마감일 마커 (시간표 헤더) */
+/* ========================================================== */
+.day-header {
+    position: relative;
+    /* 마커의 기준점이 됨 */
+}
+
+.due-date-marker {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--danger-color);
+    /* 빨간색 글씨 */
+    margin-top: 4px;
+    padding: 2px 4px;
+    background-color: rgba(231, 76, 60, 0.1);
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%;
 }

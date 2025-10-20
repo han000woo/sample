@@ -4,26 +4,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>랜덤 주간 시간표 메이커</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
-        rel="stylesheet">
-
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="modal.css">
-    <link rel="stylesheet" href="random.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <title>주간 일정 관리표</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 
 <body>
+
     <div class="container">
         <div class="main-container">
             <h1>주간 시간표</h1>
-
+            <div class="controller-buttons">
+                <input type="file" id="file-input" accept=".xlsx, .xls, .csv" style="display: none;">
+                <button id="demo-download-btn" title="엑셀 양식 저장">
+                    <span class="material-icons">file_download</span>
+                </button>
+                <button id="import-btn" title="엑셀 불러오기">
+                    <span class="material-icons">upload_file</span>
+                </button>
+                <button id="add-subject-btn" title="새 일정 추가">
+                    <span class="material-icons">add_circle</span>
+                </button>
+                <button id="download-button" title="이미지로 저장">
+                    <span class="material-icons">image</span>
+                </button>
+                <button id="reset-button" title="초기화">
+                    <span class="material-icons">restart_alt</span>
+                </button>
+            </div>
             <div class="grid" id="grid">
                 <div class="day-header">시간</div>
                 <div class="day-header">월</div>
@@ -35,53 +47,96 @@
                 <div class="day-header">일</div>
             </div>
         </div>
+
         <div class="batch-container">
-            <h2>📝 배치할 일정 목록</h2>
+            <div class="batch-header">
+                <h2>📝 자동 배치 목록</h2>
+            </div>
 
-            <form id="batch-form">
-                <input type="text" id="task-title" placeholder="일정 이름 (예: 알고리즘 공부)" required>
-                <div class="duration-input">
-                    <input type="number" id="task-duration" placeholder="시간" min="0" step="1">
-                    <span>시간</span>
-                    <input type="number" id="task-duration-min" placeholder="분" min="0" step="30">
-                    <span>분</span>
+            <div id="priority-settings" class="is-collapsed">
+
+                <div id="priority-toggle" class="priority-toggle-header">
+                    <label>주간 목표 시간 설정</label>
+                    <span class="material-icons chevron">expand_more</span>
                 </div>
-                <button type="submit" title="목록에 추가">추가</button>
-            </form>
 
-            <div id="batch-list">
+                <div class="priority-content">
+                    <div class="priority-list">
+                        <div class="priority-item">
+                            <span class="priority-badge prio-A">A</span>
+                            <select id="prio-A-h" title="A등급 시간"></select> <em>시간</em>
+                            <select id="prio-A-m" title="A등급 분">
+                                <option value="0">0</option>
+                                <option value="30">30</option>
+                            </select> <em>분</em>
+                        </div>
+                        <div class="priority-item">
+                            <span class="priority-badge prio-B">B</span>
+                            <select id="prio-B-h" title="B등급 시간"></select> <em>시간</em>
+                            <select id="prio-B-m" title="B등급 분">
+                                <option value="0">0</option>
+                                <option value="30">30</option>
+                            </select> <em>분</em>
+                        </div>
+                        <div class="priority-item">
+                            <span class="priority-badge prio-C">C</span>
+                            <select id="prio-C-h" title="C등급 시간"></select> <em>시간</em>
+                            <select id="prio-C-m" title="C등급 분">
+                                <option value="0">0</option>
+                                <option value="30">30</option>
+                            </select> <em>분</em>
+                        </div>
+                        <div class="priority-item">
+                            <span class="priority-badge prio-D">D</span>
+                            <select id="prio-D-h" title="D등급 시간"></select> <em>시간</em>
+                            <select id="prio-D-m" title="D등급 분">
+                                <option value="0">0</option>
+                                <option value="30">30</option>
+                            </select> <em>분</em>
+                        </div>
+                        <div class="priority-item">
+                            <span class="priority-badge prio-E">E</span>
+                            <select id="prio-E-h" title="E등급 시간"></select> <em>시간</em>
+                            <select id="prio-E-m" title="E등급 분">
+                                <option value="0">0</option>
+                                <option value="30">30</option>
+                            </select> <em>분</em>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="batch-list-section">
+                <label>배치할 일정</label>
+                <form id="batch-form">
+                    <textarea id="task-title" placeholder="해야 할 일정 (예: 10장 읽기, 프로젝트 기획서 초안 작성)" rows="3"
+                        required></textarea>
+
+                    <div class="form-row">
+                        <label for="task-due-date">마감일:</label>
+                        <input type="date" id="task-due-date">
+                    </div>
+                    <select id="task-priority" title="중요도 선택">
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                        <option value="E">E</option>
+                    </select>
+                    <button type="submit" title="목록에 추가">
+                        <span class="material-icons">add</span>
+                    </button>
+                </form>
+                <div id="batch-list"></div>
             </div>
 
             <button id="batch-place-btn">
                 <span class="material-icons">auto_awesome</span>
-                평일 빈 시간에 자동 배치
+                일정 자동 배치 실행
             </button>
         </div>
     </div>
 
-    <div id="schedule-controller" draggable="true">
-        <input type="file" id="file-input" accept=".xlsx, .xls, .csv" style="display: none;">
-
-        <button id="demo-download-btn" title="엑셀 양식 저장">
-            <span class="material-icons">file_download</span>
-        </button>
-
-        <button id="import-btn" title="엑셀 불러오기">
-            <span class="material-icons">upload_file</span>
-        </button>
-
-        <button id="add-subject-btn" title="새 일정 추가">
-            <span class="material-icons">add_circle</span>
-        </button>
-
-        <button id="download-button" title="이미지로 저장">
-            <span class="material-icons">image</span>
-        </button>
-
-        <button id="reset-button" title="초기화">
-            <span class="material-icons">restart_alt</span>
-        </button>
-    </div>
 
     <div id="modal-overlay" class="hidden">
         <div id="modal-content">
@@ -89,49 +144,42 @@
             <h2>새 일정 추가</h2>
             <form id="subject-form">
                 <input type="hidden" id="editing-schedule-id">
-
                 <div class="form-group">
                     <label for="subject-title">일정명</label>
                     <input type="text" id="subject-title" required placeholder="예: 팀 회의">
                 </div>
-                <div class="form-group">
-                    <label for="subject-day">요일</label>
-                    <select id="subject-day" required>
-                        <option value="월">월요일</option>
-                        <option value="화">화요일</option>
-                        <option value="수">수요일</option>
-                        <option value="목">목요일</option>
-                        <option value="금">금요일</option>
-                        <option value="토">토요일</option>
-                        <option value="일">일요일</option>
-                    </select>
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label for="subject-day">요일</label>
+                        <select id="subject-day"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject-start-time">시작 시간</label>
+                        <select id="subject-start-time"></select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="subject-start-time">시작 시간</label>
-                    <select id="subject-start-time" required></select>
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label for="subject-duration">공부 시간</label>
+                        <select id="subject-duration"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject-color">색상</label>
+                        <input type="color" id="subject-color" value="#3498db">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="subject-duration">공부 시간</label>
-                    <select id="subject-duration" required></select>
-                </div>
-                <div class="form-group">
-                    <label for="subject-color">색상</label>
-                    <input type="color" id="subject-color" value="#4A90E2">
-                </div>
-                <button type="submit" id="save-subject-btn">저장</button>
+                <button type="submit" id="form-submit-btn">저장</button>
             </form>
         </div>
     </div>
 
     <div id="context-menu" class="hidden">
-        <button id="edit-btn">✏️ 수정</button>
-        <button id="delete-btn">🗑️ 삭제</button>
+        <ul>
+            <li id="context-edit">수정</li>
+            <li id="context-delete">삭제</li>
+        </ul>
     </div>
-    <script src="util.js"></script>
-    <script src="random.js"></script>
-    <script src="excel.js"></script>
-    <script src="modal.js"></script>
-    <script src="data.js"></script>
+
     <script src="script.js"></script>
 </body>
 
