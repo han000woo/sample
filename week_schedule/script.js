@@ -21,6 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeButtons();
     initializeModal();
     initializeBatchContainer();
+    initializeTitleEditor(); // ▼▼▼ [신규] 추가 ▼▼▼
+    initializeThemeModal();  // ▼▼▼ [신규] 추가 ▼▼▼
     renderSchedule();
 });
 
@@ -50,7 +52,7 @@ function createTimeGridRows() {
 
 /** 모든 버튼의 이벤트 리스너를 초기화합니다. */
 function initializeButtons() {
-    
+
 
     // 엑셀 양식 다운로드
     const demoDownloadBtn = document.getElementById('demo-download-btn');
@@ -81,6 +83,9 @@ function initializeButtons() {
             }
         });
     }
+
+    const themeBtn = document.getElementById('theme-settings-btn');
+    if (themeBtn) themeBtn.addEventListener('click', openThemeModal);
 }
 
 /** 메인 모달창의 이벤트 리스너를 초기화합니다. */
@@ -125,10 +130,10 @@ function initializeBatchContainer() {
         const totalMins = priorityMinutes[prio];
         const hours = Math.floor(totalMins / 60);
         const mins = totalMins % 60;
-        
+
         hSelect.value = hours;
         // 분(minute) 값이 0 또는 30이 아닐 경우 30으로 보정
-        mSelect.value = (mins >= 30) ? 30 : 0; 
+        mSelect.value = (mins >= 30) ? 30 : 0;
 
         // 3. ✨ [변경] input 대신 select에 이벤트 리스너 추가
         const updatePriority = () => {
@@ -551,11 +556,11 @@ function updateDurationOptions(ignoreId = null) {
 function handleAddTask(e) {
     e.preventDefault();
     const titleInput = document.getElementById('task-title');
-    
+
     // 1. [수정] <select> 드롭다운에서 우선순위를 읽어옵니다.
     const prioritySelect = document.getElementById('task-priority');
     const priority = prioritySelect.value; // 'A', 'B', 'C' 등
-    
+
     // 2. 마감일 값을 읽어옵니다.
     const dueDateInput = document.getElementById('task-due-date');
 
@@ -567,11 +572,11 @@ function handleAddTask(e) {
             priority: priority,
             dueDate: dueDateInput.value || null
         });
-        
+
         // 4. 목록을 다시 그립니다.
         renderBatchList();
         e.target.reset(); // 폼 리셋 (textarea, date, select)
-        
+
         // 5. [수정] <select>의 값을 기본값('C')으로 리셋합니다.
         // (e.target.reset()이 이미 이 작업을 수행하지만,
         //  C가 selected이므로 명시적으로 둘 수 있습니다.)
@@ -599,7 +604,7 @@ function renderBatchList() {
                 dueDateHtml = `<span class="task-due-date">마감: ${formattedDate}</span>`;
             } catch (e) { console.error("Invalid date format:", task.dueDate); }
         }
-        
+
         // ✨ [변경] HTML 구조 수정
         item.innerHTML = `
             <div class="task-info">
@@ -891,7 +896,7 @@ async function handleImageExport() {
 function isTimeSlotAvailable(day, startTime, duration, ignoreId) {
     const start = timeToMinutes(startTime);
     const end = start + duration;
-    
+
     if (end > endH * 60) return false;
 
     for (const item of schedule) {
@@ -983,4 +988,173 @@ function renderDueDates() {
             }
         }
     });
+}
+
+/* ========================================================== */
+/* 8. (신규) 제목 편집 기능 */
+/* ========================================================== */
+
+/** H1 태그를 클릭하여 편집할 수 있도록 초기화합니다. */
+function initializeTitleEditor() {
+    const h1 = document.querySelector('.main-container h1');
+    if (!h1) return;
+
+    // 1. h1 태그를 편집 가능하도록 설정
+    h1.contentEditable = true;
+    h1.style.cursor = 'text';
+
+    // 2. 편집 중 Enter 키를 누르면 줄바꿈 대신 편집 종료(blur)
+    h1.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // 줄바꿈 방지
+            h1.blur();          // focus 잃기 (편집 종료)
+        }
+    });
+
+    // 3. (선택) 내용이 비어있으면 기본값으로 복원
+    h1.addEventListener('blur', () => {
+        if (h1.textContent.trim() === '') {
+            h1.textContent = '주간 시간표';
+        }
+    });
+}
+
+
+/* ========================================================== */
+/* 9. (신규) 테마 설정 모달 기능 */
+/* ========================================================== */
+
+const defaultColors = {
+    titleColor: '#3498db',
+    cellBg: '#FFFFFF',
+    dayHeaderBg: '#f9f9f9',
+    dayHeaderText: '#333333', // ▼▼▼ [신규] 추가 ▼▼▼
+    timeLabelBg: '#fdfdfd',
+    timeLabelText: '#777777', // ▼▼▼ [신규] 추가 ▼▼▼
+    cellBorder: '#E0E0E0'
+};
+
+/** 테마 설정 모달의 이벤트 리스너를 초기화합니다. */
+function initializeThemeModal() {
+    const modalOverlay = document.getElementById('theme-modal-overlay');
+    const closeBtn = document.getElementById('theme-modal-close-btn');
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeThemeModal();
+        });
+    }
+    if (closeBtn) closeBtn.addEventListener('click', closeThemeModal);
+
+    // --- 컬러 피커 로직 ---
+    const root = document.documentElement;
+    const bgColorPicker = document.getElementById('grid-bg-color');
+    const borderColorPicker = document.getElementById('grid-border-color');
+    const bgResetBtn = document.getElementById('grid-bg-reset');
+    const borderResetBtn = document.getElementById('grid-border-reset');
+    const dayHeaderBgPicker = document.getElementById('day-header-bg-color');
+    const dayHeaderBgReset = document.getElementById('day-header-bg-reset');
+    const dayHeaderTextPicker = document.getElementById('day-header-text-color');
+    const dayHeaderTextReset = document.getElementById('day-header-text-reset');
+    const timeLabelBgPicker = document.getElementById('time-label-bg-color');
+    const timeLabelBgReset = document.getElementById('time-label-bg-reset');
+    const timeLabelTextPicker = document.getElementById('time-label-text-color');
+    const timeLabelTextReset = document.getElementById('time-label-text-reset');
+
+    const titleColorPicker = document.getElementById('title-color');
+    const titleResetBtn = document.getElementById('title-color-reset');
+
+    if (titleColorPicker) {
+        titleColorPicker.addEventListener('input', (e) => {
+            root.style.setProperty('--title-color', e.target.value);
+        });
+    }
+    if (titleResetBtn) {
+        titleResetBtn.addEventListener('click', () => {
+            root.style.setProperty('--title-color', defaultColors.titleColor);
+            titleColorPicker.value = defaultColors.titleColor;
+        });
+    }
+    // 1. 셀 배경색 변경
+    if (bgColorPicker) {
+        bgColorPicker.addEventListener('input', (e) => {
+            root.style.setProperty('--grid-cell-bg', e.target.value);
+        });
+    }
+
+    
+    if (dayHeaderBgPicker) {
+        dayHeaderBgPicker.addEventListener('input', (e) => {
+            root.style.setProperty('--day-header-bg', e.target.value);
+        });
+    }
+    if (dayHeaderBgReset) {
+        dayHeaderBgReset.addEventListener('click', () => {
+            root.style.setProperty('--day-header-bg', defaultColors.dayHeaderBg);
+            dayHeaderBgPicker.value = defaultColors.dayHeaderBg;
+        });
+    }
+if (dayHeaderTextPicker) {
+        dayHeaderTextPicker.addEventListener('input', (e) => {
+            root.style.setProperty('--day-header-text', e.target.value);
+        });
+    }
+    if (dayHeaderTextReset) {
+        dayHeaderTextReset.addEventListener('click', () => {
+            root.style.setProperty('--day-header-text', defaultColors.dayHeaderText);
+            dayHeaderTextPicker.value = defaultColors.dayHeaderText;
+        });
+    }
+    if (timeLabelBgPicker) {
+        timeLabelBgPicker.addEventListener('input', (e) => {
+            root.style.setProperty('--time-label-bg', e.target.value);
+        });
+    }
+    if (timeLabelBgReset) {
+        timeLabelBgReset.addEventListener('click', () => {
+            root.style.setProperty('--time-label-bg', defaultColors.timeLabelBg);
+            timeLabelBgPicker.value = defaultColors.timeLabelBg;
+        });
+    }
+    if (timeLabelTextPicker) {
+        timeLabelTextPicker.addEventListener('input', (e) => {
+            root.style.setProperty('--time-label-text', e.target.value);
+        });
+    }
+    if (timeLabelTextReset) {
+        timeLabelTextReset.addEventListener('click', () => {
+            root.style.setProperty('--time-label-text', defaultColors.timeLabelText);
+            timeLabelTextPicker.value = defaultColors.timeLabelText;
+        });
+    }
+    // 2. 셀 테두리색 변경
+    if (borderColorPicker) {
+        borderColorPicker.addEventListener('input', (e) => {
+            root.style.setProperty('--grid-border-color', e.target.value);
+        });
+    }
+
+    // 3. 배경색 리셋
+    if (bgResetBtn) {
+        bgResetBtn.addEventListener('click', () => {
+            root.style.setProperty('--grid-cell-bg', defaultColors.cellBg);
+            bgColorPicker.value = defaultColors.cellBg;
+        });
+    }
+    // 4. 테두리색 리셋
+    if (borderResetBtn) {
+        borderResetBtn.addEventListener('click', () => {
+            root.style.setProperty('--grid-border-color', defaultColors.cellBorder);
+            borderColorPicker.value = defaultColors.cellBorder;
+        });
+    }
+}
+
+/** 테마 설정 모달을 엽니다. */
+function openThemeModal() {
+    document.getElementById('theme-modal-overlay').classList.remove('hidden');
+}
+
+/** 테마 설정 모달을 닫습니다. */
+function closeThemeModal() {
+    document.getElementById('theme-modal-overlay').classList.add('hidden');
 }

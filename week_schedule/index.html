@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title>주간 일정 관리표</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -34,6 +34,9 @@
                 </button>
                 <button id="reset-button" title="초기화">
                     <span class="material-icons">restart_alt</span>
+                </button>
+                <button id="theme-settings-btn" title="테마 설정">
+                    <span class="material-icons">palette</span>
                 </button>
             </div>
             <div class="grid" id="grid">
@@ -178,6 +181,86 @@
             <li id="context-edit">수정</li>
             <li id="context-delete">삭제</li>
         </ul>
+    </div>
+    <div id="theme-modal-overlay" class="hidden">
+        <div id="theme-modal-content">
+            <span id="theme-modal-close-btn">&times;</span>
+            <h2>테마 설정</h2>
+
+            <div class="theme-grid-container">
+
+                <div class="form-group span-2">
+                    <label for="title-color" style="pointer-events: none;">제목 색상</label>
+                    <div class="color-input-wrapper">
+                        <input type="color" id="title-color" value="#3498db">
+                        <span id="title-color-reset" class="color-reset-btn" title="기본값 복원">
+                            <span class="material-icons">undo</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="grid-bg-color" style="pointer-events: none;">셀 배경색</label>
+                    <div class="color-input-wrapper">
+                        <input type="color" id="grid-bg-color" value="#FFFFFF">
+                        <span id="grid-bg-reset" class="color-reset-btn" title="기본값 복원">
+                            <span class="material-icons">undo</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="grid-border-color" style="pointer-events: none;">셀 테두리색</label>
+                    <div class="color-input-wrapper">
+                        <input type="color" id="grid-border-color" value="#E0E0E0">
+                        <span id="grid-border-reset" class="color-reset-btn" title="기본값 복원">
+                            <span class="material-icons">undo</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="day-header-bg-color" style="pointer-events: none;">요일 헤더 배경</label>
+                    <div class="color-input-wrapper">
+                        <input type="color" id="day-header-bg-color" value="#f9f9f9">
+                        <span id="day-header-bg-reset" class="color-reset-btn" title="기본값 복원">
+                            <span class="material-icons">undo</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="day-header-text-color" style="pointer-events: none;">요일 헤더 글씨</label>
+                    <div class="color-input-wrapper">
+                        <input type="color" id="day-header-text-color" value="#333333">
+                        <span id="day-header-text-reset" class="color-reset-btn" title="기본값 복원">
+                            <span class="material-icons">undo</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="time-label-bg-color" style="pointer-events: none;">시간 헤더 배경</label>
+                    <div class="color-input-wrapper">
+                        <input type="color" id="time-label-bg-color" value="#fdfdfd">
+                        <span id="time-label-bg-reset" class="color-reset-btn" title="기본값 복원">
+                            <span class="material-icons">undo</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="time-label-text-color" style="pointer-events: none;">시간 헤더 글씨</label>
+                    <div class="color-input-wrapper">
+                        <input type="color" id="time-label-text-color" value="#777777">
+                        <span id="time-label-text-reset" class="color-reset-btn" title="기본값 복원">
+                            <span class="material-icons">undo</span>
+                        </span>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>
