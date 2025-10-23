@@ -23,6 +23,24 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeBatchContainer();
     initializeTitleEditor(); // ▼▼▼ [신규] 추가 ▼▼▼
     initializeThemeModal();  // ▼▼▼ [신규] 추가 ▼▼▼
+    initializeSidebarToggle();
+
+    // 1. (기존) 창 크기를 조절하는 '동안' 부드럽게 렌더링
+    const throttledRender = throttle(renderSchedule, 150);
+    window.addEventListener('resize', throttledRender);
+
+    // ▼▼▼ [신규] 이 코드를 추가하세요 ▼▼▼
+
+    // 2. (신규) '1200px 경계선'을 넘을 때 즉시 렌더링 (레이아웃 보정용)
+    //    CSS 미디어 쿼리 상태가 '변경'될 때 1회만 즉시 실행됩니다.
+    const mediaQuery = window.matchMedia('(max-width: 1200px)');
+
+    mediaQuery.addEventListener('change', () => {
+        // 레이아웃이 (사이드바가 나타나거나 사라지면서) 급격히 변경된
+        // 직후이므로, 딜레이 없이 즉시 렌더링을 다시 실행합니다.
+        renderSchedule();
+    });
+
     renderSchedule();
 });
 
@@ -170,7 +188,7 @@ function renderSchedule() {
         cell.style.borderBottomColor = '';
     });
     document.querySelectorAll('.subject-title-overlay').forEach(overlay => overlay.remove());
-    document.querySelectorAll('.due-date-marker').forEach(marker => marker.remove()); // ✨ [추가]
+
     // 2. schedule 배열 순회하며 그리기
     schedule.forEach(item => {
         const subject = subjects.find(s => s.id === item.subjectId);
@@ -208,13 +226,43 @@ function renderSchedule() {
         // 3. 오버레이(일정 제목) 추가
         if (firstCell) {
             const titleOverlay = document.createElement('div');
+            // const titleText = document.createElement('span');
+
             titleOverlay.className = 'subject-title-overlay';
             titleOverlay.textContent = subject.title;
+
+            const today = new Date();
+            const currentDayOfWeek = (today.getDay() + 6) % 7; // 0=월, 6=일
+
+            // 이번 주 월요일 00:00:00
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - currentDayOfWeek);
+            weekStart.setHours(0, 0, 0, 0);
+
+            // 이번 주 일요일 23:59:59
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            weekEnd.setHours(23, 59, 59, 999);
+
             titleOverlay.style.backgroundColor = subject.color; // 오버레이에도 배경색 적용
+
+            if (item.dueDate && isDateInCurrentWeek(item.dueDate, weekStart, weekEnd)) {
+                try {
+                    // YYYY-MM-DD 형식에서 월/일만 추출
+                    const date = new Date(item.dueDate + 'T00:00:00'); // 시간대 문제 방지
+                    const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+
+                    const dueDateEl = document.createElement('div');
+                    dueDateEl.className = 'overlay-due-date';
+                    dueDateEl.textContent = `🔥 마감: ${formattedDate}`;
+                    titleOverlay.appendChild(dueDateEl);
+                } catch (e) {
+                    console.error("Invalid due date in schedule item:", item.dueDate);
+                }
+            }
 
             titleOverlay.draggable = true;
             titleOverlay.dataset.scheduleId = item.scheduleId;
-
             titleOverlay.addEventListener('click', (e) => {
                 e.stopPropagation();
                 showContextMenu(e.pageX, e.pageY, item.scheduleId);
@@ -246,8 +294,7 @@ function renderSchedule() {
         cell.addEventListener('drop', handleDrop);
     });
 
-    // 5. ✨ [신규] 마감일 렌더링
-    renderDueDates();
+
 }
 
 /** 컨텍스트 메뉴(우클릭 메뉴)를 엽니다. */
@@ -669,7 +716,13 @@ function handleBatchPlace() {
         let remaining = totalDuration;
         while (remaining > 0) {
             const chunkSize = Math.min(remaining, 120); // 최대 2시간(120분) 단위로 자르기
-            chunks.push({ title: task.title, duration: chunkSize, priority: task.priority });
+
+            chunks.push({
+                title: task.title,
+                duration: chunkSize,
+                priority: task.priority,
+                dueDate: task.dueDate // 이 줄을 추가하세요
+            });
             remaining -= chunkSize;
         }
     });
@@ -738,6 +791,7 @@ function placeChunk(chunk, day, startTime) {
         day, startTime,
         duration: chunk.duration,
         isAutoPlaced: true,
+        dueDate: chunk.dueDate || null // 이 줄을 추가하세요
     });
 }
 
@@ -748,12 +802,21 @@ function placeChunk(chunk, day, startTime) {
 
 /** 엑셀 양식 파일을 다운로드합니다. */
 function handleDownloadDemo() {
-    const link = document.createElement('a');
-    link.href = 'data/demo.xlsx'; // 'data' 폴더에 'demo.xlsx' 파일이 있어야 함
-    link.download = '일정_입력_양식.xlsx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // ▼▼▼ [수정] pywebview API 호출 로직 ▼▼▼
+    if (window.pywebview && window.pywebview.api) {
+        // --- 1. PyWebview 환경일 때 ---
+        // Python의 save_excel_demo() 함수 호출
+        window.pywebview.api.save_excel_demo();
+
+    } else {
+        // --- 2. 일반 브라우저 환경일 때 (기존 로직) ---
+        const link = document.createElement('a');
+        link.href = 'data/demo.xlsx'; // 'data' 폴더에 'demo.xlsx' 파일이 있어야 함
+        link.download = '일정_입력_양식.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 }
 
 /** 엑셀 파일을 읽고 파싱하여 시간표를 업데이트합니다. */
@@ -871,14 +934,23 @@ async function handleImageExport() {
         });
 
         const imageUrl = canvas.toDataURL('image/png', 1.0);
-        const link = document.createElement('a');
-        const today = new Date();
-        const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        link.download = `주간시간표_${dateString}.png`;
-        link.href = imageUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (window.pywebview && window.pywebview.api) {
+            // --- 1. PyWebview 환경일 때 ---
+            // Python의 save_image() 함수에 dataURL 전달
+            // Python 처리가 끝날 때까지 기다림 (비동기)
+            await window.pywebview.api.save_image(imageUrl);
+
+        } else {
+            // --- 2. 일반 브라우저 환경일 때 (기존 로직) ---
+            const link = document.createElement('a');
+            const today = new Date();
+            const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            link.download = `주간시간표_${dateString}.png`;
+            link.href = imageUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     } catch (error) {
         console.error("이미지 캡처 중 오류 발생:", error);
         alert("이미지를 생성하는 데 실패했습니다. 잠시 후 다시 시도해 주세요.");
@@ -963,32 +1035,6 @@ function getPriorityColor(priority) {
     return priorityColors[priority] || '#607D8B';
 }
 
-function renderDueDates() {
-    const dayHeaders = ['일', '월', '화', '수', '목', '금', '토']; // Date.getDay() 순서
-
-    batchTasks.forEach(task => {
-        if (task.dueDate) {
-            try {
-                const dueDate = new Date(task.dueDate + 'T00:00:00');
-                const dayOfWeek = dayHeaders[dueDate.getDay()]; // '월', '화', ...
-
-                // 해당 요일의 헤더 셀을 찾습니다.
-                const headerCell = Array.from(document.querySelectorAll('.day-header'))
-                    .find(h => h.textContent === dayOfWeek);
-
-                if (headerCell) {
-                    const marker = document.createElement('div');
-                    marker.className = 'due-date-marker';
-                    marker.textContent = `🔥 ${task.title}`;
-                    marker.title = `${task.title} (마감일)`;
-                    headerCell.appendChild(marker);
-                }
-            } catch (e) {
-                console.warn("Invalid due date found:", task.dueDate);
-            }
-        }
-    });
-}
 
 /* ========================================================== */
 /* 8. (신규) 제목 편집 기능 */
@@ -1081,7 +1127,7 @@ function initializeThemeModal() {
         });
     }
 
-    
+
     if (dayHeaderBgPicker) {
         dayHeaderBgPicker.addEventListener('input', (e) => {
             root.style.setProperty('--day-header-bg', e.target.value);
@@ -1093,7 +1139,7 @@ function initializeThemeModal() {
             dayHeaderBgPicker.value = defaultColors.dayHeaderBg;
         });
     }
-if (dayHeaderTextPicker) {
+    if (dayHeaderTextPicker) {
         dayHeaderTextPicker.addEventListener('input', (e) => {
             root.style.setProperty('--day-header-text', e.target.value);
         });
@@ -1157,4 +1203,118 @@ function openThemeModal() {
 /** 테마 설정 모달을 닫습니다. */
 function closeThemeModal() {
     document.getElementById('theme-modal-overlay').classList.add('hidden');
+}
+
+/** 사이드바 토글 버튼 및 오버레이 이벤트를 초기화합니다. */
+function initializeSidebarToggle() {
+    const toggleBtn = document.getElementById('sidebar-toggle-btn');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (toggleBtn) {
+        // [변경] openSidebar -> toggleSidebar 함수로 변경
+        toggleBtn.addEventListener('click', toggleSidebar);
+    }
+
+    if (overlay) {
+        overlay.addEventListener('click', closeSidebar);
+    }
+}
+/** [신규] 사이드바 상태를 확인하고 열거나 닫습니다. */
+function toggleSidebar() {
+    const sidebar = document.querySelector('.batch-container');
+    if (sidebar.classList.contains('is-open')) {
+        closeSidebar();
+    } else {
+        openSidebar();
+    }
+}
+/** 사이드바를 엽니다. */
+function openSidebar() {
+    const sidebar = document.querySelector('.batch-container');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    overlay.classList.remove('hidden');
+    // opacity 트랜지션을 위해 약간의 딜레이가 필요할 수 있습니다.
+    setTimeout(() => {
+        sidebar.classList.add('is-open');
+        overlay.classList.add('is-open');
+    }, 10);
+}
+
+/** 사이드바를 닫습니다. */
+function closeSidebar() {
+    const sidebar = document.querySelector('.batch-container');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    sidebar.classList.remove('is-open');
+    overlay.classList.remove('is-open');
+
+    // 트랜지션이 끝난 후 (0.3초) 오버레이를 숨겨서
+    // 뒤쪽 메인 컨텐츠가 클릭되도록 합니다.
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+    }, 300);
+}
+
+/* ========================================================== */
+/* 11. (신규) 날짜 헬퍼 함수 */
+/* ========================================================== */
+
+/**
+ * YYYY-MM-DD 형식의 날짜 문자열이 해당 주(월~일)에 포함되는지 확인합니다.
+ * @param {string} dateString - 'YYYY-MM-DD' 형식의 마감일
+ * @param {Date} weekStart - 이번 주 월요일 00:00:00
+ * @param {Date} weekEnd - 이번 주 일요일 23:59:59
+ * @returns {boolean}
+ */
+function isDateInCurrentWeek(dateString, weekStart, weekEnd) {
+    try {
+        // 시간대 문제를 피하기 위해 T00:00:00 (로컬 시간)으로 파싱
+        const dueDate = new Date(dateString + 'T00:00:00');
+
+        // 유효하지 않은 날짜(Invalid Date)인 경우 false 반환
+        if (isNaN(dueDate.getTime())) {
+            return false;
+        }
+
+        // dueDate가 weekStart (월요일 00:00)보다 크거나 같고,
+        // weekEnd (일요일 23:59)보다 작거나 같은지 확인
+        return dueDate >= weekStart && dueDate <= weekEnd;
+    } catch (e) {
+        console.error("Date parsing error:", e);
+        return false;
+    }
+}
+
+/* ========================================================== */
+/* 12. (신규) 유틸리티 함수 - 스로틀 */
+/* ========================================================== */
+
+/**
+ * 연속적인 이벤트 발생 시, 일정 시간(limit)마다 최대 한 번만
+ * 콜백 함수를 실행합니다. (Throttle)
+ * @param {Function} func - 실행할 콜백 함수
+ * @param {number} limit - 실행 간격 (밀리초)
+ * @returns {Function} - 스로틀된 함수
+ */
+function throttle(func, limit) {
+    let inThrottle; // 현재 스로틀(지연) 중인지 여부를 추적
+
+    return function (...args) {
+        const context = this;
+
+        // inThrottle이 true이면 (즉, 쿨타임 중이면) 아무것도 하지 않음
+        if (!inThrottle) {
+            // 1. 함수를 즉시 실행
+            func.apply(context, args);
+
+            // 2. 쿨타임(inThrottle)을 true로 설정
+            inThrottle = true;
+
+            // 3. 'limit' 시간(예: 150ms) 후에 쿨타임을 false로 해제
+            setTimeout(() => {
+                inThrottle = false;
+            }, limit);
+        }
+    };
 }

@@ -17,9 +17,12 @@
     --grid-border-color: #e0e0e0;
     --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     --border-radius: 8px;
-    --day-header-bg: #f9f9f9; /* ▼▼▼ [신규] 요일 헤더 변수 ▼▼▼ */
-    --time-label-bg: #fdfdfd; /* ▼▼▼ [신규] 시간 헤더 변수 ▼▼▼ */
-    --day-header-text: #333333; /* ▼▼▼ [신규] 요일 글씨 변수 ▼▼▼ */
+    --day-header-bg: #f9f9f9;
+    /* ▼▼▼ [신규] 요일 헤더 변수 ▼▼▼ */
+    --time-label-bg: #fdfdfd;
+    /* ▼▼▼ [신규] 시간 헤더 변수 ▼▼▼ */
+    --day-header-text: #333333;
+    /* ▼▼▼ [신규] 요일 글씨 변수 ▼▼▼ */
     --time-label-text: #777777;
 }
 
@@ -142,18 +145,48 @@ button {
 }
 
 /* 일정 제목 오버레이 */
+/* 일정 제목 오버레이 */
 .subject-title-overlay {
     position: absolute;
     z-index: 5;
     padding: 8px;
     color: white;
+    overflow: hidden;
+    cursor: pointer;
+    border-radius: 4px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    /* 제목은 위로, 마감일은 아래로 */
+}
+
+/* ▼▼▼ [신규] 오버레이 내부의 제목 텍스트 ▼▼▼ */
+.overlay-title-text {
     font-weight: 500;
     font-size: 0.9rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: pre-line;
-    cursor: pointer;
-    border-radius: 4px;
+    min-height: 0;
+    /* flex 아이템이 넘칠 경우 */
+}
+
+/* ▼▼▼ [신규] 오버레이 내부의 마감일 뱃지 ▼▼▼ */
+.overlay-due-date {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.2);
+    /* 반투명 검정 배경 */
+    border-radius: 3px;
+    padding: 2px 5px;
+    margin-top: 5px;
+    /* 제목과의 최소 간격 */
+    width: fit-content;
+    /* 내용물 크기에 맞춤 */
+    flex-shrink: 0;
+    /* 줄어들지 않음 */
 }
 
 /* 드래그 고스트 */
@@ -645,6 +678,19 @@ button {
     color: #8e44ad;
 }
 
+/* ▼▼▼ [신규] 사이드바 토글 버튼 스타일 ▼▼▼ */
+#sidebar-toggle-btn {
+    color: #16a085;
+    /* 청록색 계열 */
+    display: none;
+    /* 기본(데스크탑)에서는 숨김 */
+}
+
+#sidebar-toggle-btn:hover {
+    background-color: #f0f0f0;
+    color: #117a65;
+}
+
 /* ========================================================== */
 /* 6. 모달 및 컨텍스트 메뉴 */
 /* ========================================================== */
@@ -706,7 +752,7 @@ button {
 
 .form-group input[type="color"] {
     width: 100%;
-    height: 48px;
+    height: 53px;
     padding: 0 5px;
 }
 
@@ -729,6 +775,7 @@ button {
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
+    margin-top: 20px;
 }
 
 #context-menu {
@@ -767,19 +814,43 @@ button {
 /* 7. 반응형 디자인 */
 /* ========================================================== */
 @media (max-width: 1200px) {
-    .container {
-        flex-direction: column;
+
+    /* [유지] h2 왼쪽 정렬 (이전 요청) */
+    h1 {
+        text-align: left;
+        margin-left: 20px;
     }
 
+    /* [신규] 사이드바 토글 버튼 보이기 */
+    #sidebar-toggle-btn {
+        display: flex;
+    }
+
+    /* [변경] 사이드바를 화면 밖으로 이동시킴 */
     .batch-container {
-        width: 100%;
-        height: auto;
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 400px;
+        /* 기존 너비 유지 */
+        max-width: 90vw;
+        /* 화면보다 커지지 않게 */
+        height: 100vh;
+        /* 화면 전체 높이 */
         margin-left: 0;
-        max-height: 500px;
-    }
+        z-index: 4000;
+        /* 최상단 */
 
-    .main-container {
-        order: -1;
+        /* 애니메이션 */
+        transform: translateX(100%);
+        /* 오른쪽으로 숨기기 */
+        transition: transform 0.3s ease-out;
+
+        /* [유지] 기존 스타일 */
+        background-color: #f8f9fa;
+        box-shadow: none;
+        /* 열릴 때 새로 적용 */
+        border-radius: 0;
     }
 }
 
@@ -823,29 +894,6 @@ button {
 }
 
 /* ========================================================== */
-/* 9. 마감일 마커 (시간표 헤더) */
-/* ========================================================== */
-.day-header {
-    position: relative;
-    /* 마커의 기준점이 됨 */
-}
-
-.due-date-marker {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--danger-color);
-    /* 빨간색 글씨 */
-    margin-top: 4px;
-    padding: 2px 4px;
-    background-color: rgba(231, 76, 60, 0.1);
-    border-radius: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 90%;
-}
-
-/* ========================================================== */
 /* 10. 테마 설정 모달 (재디자인) */
 /* ========================================================== */
 #theme-modal-overlay {
@@ -870,7 +918,8 @@ button {
     padding: 30px;
     border-radius: var(--border-radius);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    width: 480px; /* ▼▼▼ [수정] 2열 배치를 위해 너비 증가 ▼▼▼ */
+    width: 480px;
+    /* ▼▼▼ [수정] 2열 배치를 위해 너비 증가 ▼▼▼ */
     position: relative;
 }
 
@@ -887,23 +936,29 @@ button {
 /* ▼▼▼ [신규] 2열 그리드 컨테이너 ▼▼▼ */
 .theme-grid-container {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* 2열 */
-    gap: 20px 25px; /* 세로 간격, 가로 간격 */
-    margin-top: 25px; /* h2와의 간격 */
+    grid-template-columns: 1fr 1fr;
+    /* 2열 */
+    gap: 20px 25px;
+    /* 세로 간격, 가로 간격 */
+    margin-top: 25px;
+    /* h2와의 간격 */
 }
 
 /* ▼▼▼ [수정] form-group 스타일 변경 ▼▼▼ */
 .form-group {
-    margin-bottom: 0; /* 그리드 gap이 간격을 제어하므로 제거 */
+    margin-bottom: 0;
+    /* 그리드 gap이 간격을 제어하므로 제거 */
 }
 
 .form-group label {
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
-    font-size: 0.95rem; /* 살짝 키움 */
+    font-size: 0.95rem;
+    /* 살짝 키움 */
     color: #333;
-    cursor: pointer; /* 레이블 클릭 가능하게 */
+    cursor: pointer;
+    /* 레이블 클릭 가능하게 */
 }
 
 /* ▼▼▼ [수정] 컬러 인풋 래퍼 (디자인 핵심) ▼▼▼ */
@@ -912,10 +967,13 @@ button {
     align-items: center;
     gap: 10px;
     /* ▼▼▼ [신규] 더 깔끔한 디자인을 위해 테두리 추가 ▼▼▼ */
-    border: 1px solid #ced4da; /* 부드러운 테두리 */
+    border: 1px solid #ced4da;
+    /* 부드러운 테두리 */
     border-radius: 5px;
-    padding: 6px 8px; /* 내부 여백 */
-    background-color: #f8f9fa; /* 아주 옅은 배경 */
+    padding: 6px 8px;
+    /* 내부 여백 */
+    background-color: #f8f9fa;
+    /* 아주 옅은 배경 */
     transition: border-color 0.2s;
 }
 
@@ -928,11 +986,15 @@ button {
 /* ▼▼▼ [수정] 컬러 피커 자체 스타일 ▼▼▼ */
 .color-input-wrapper input[type="color"] {
     width: 100%;
-    height: 36px; /* ▼▼▼ [수정] 높이 조정 ▼▼▼ */
+    height: 36px;
+    /* ▼▼▼ [수정] 높이 조정 ▼▼▼ */
     padding: 0;
-    border: none; /* ▼▼▼ [신규] 래퍼가 테두리를 가지므로 제거 ▼▼▼ */
-    background: none; /* ▼▼▼ [신규] ▼▼▼ */
-    flex-grow: 1; /* 남는 공간 다 차지 */
+    border: none;
+    /* ▼▼▼ [신규] 래퍼가 테두리를 가지므로 제거 ▼▼▼ */
+    background: none;
+    /* ▼▼▼ [신규] ▼▼▼ */
+    flex-grow: 1;
+    /* 남는 공간 다 차지 */
     cursor: pointer;
 }
 
@@ -945,7 +1007,8 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0; /* 줄어들지 않음 */
+    flex-shrink: 0;
+    /* 줄어들지 않음 */
     transition: background-color 0.2s;
 }
 
@@ -955,4 +1018,36 @@ button {
 
 .theme-grid-container .form-group.span-2 {
     grid-column: span 2;
+}
+
+/* ========================================================== */
+/* 11. 사이드바 토글 (신규) */
+/* ========================================================== */
+#sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 3999;
+    /* 사이드바(4000)보다 낮게 */
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    /* [변경] :not(.hidden) 대신, hidden 클래스로 제어합니다. */
+}
+
+/* [신규] 다른 모달들과 마찬가지로 hidden 클래스가 display: none을 담당 */
+#sidebar-overlay.hidden {
+    display: none;
+}
+
+#sidebar-overlay.is-open {
+    opacity: 1;
+}
+
+/* 사이드바가 열렸을 때 (JS가 .is-open 클래스 추가) */
+.batch-container.is-open {
+    transform: translateX(0);
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
 }
