@@ -15,6 +15,18 @@ let currentContextMenu = { scheduleId: null, target: null };
 
 let clipboard = null;
 let currentEmptyCellMenu = { target: null, day: null, time: null };
+
+// ▼▼▼ [신규] 리사이즈 상태 변수 ▼▼▼
+let isResizing = false;
+let resizeInfo = {
+    scheduleId: null,
+    startY: 0,          // 마우스 시작 Y 좌표
+    originalHeight: 0,  // 원래 오버레이 높이
+    cellHeight: 0,      // 셀 1칸(30분)의 픽셀 높이
+};
+// 리사이즈 중 mousemove 이벤트를 스로틀(throttle)할 핸들러
+let throttledResizeHandler = null;
+
 /* ========================================================== */
 /* 2. 초기화 함수 (페이지 로딩 시) */
 /* ========================================================== */
@@ -23,8 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeButtons();
     initializeModal();
     initializeBatchContainer();
-    initializeTitleEditor(); 
-    initializeThemeModal();  
+    initializeTitleEditor();
+    initializeThemeModal();
     initializeSidebarToggle();
 
     // 1. (기존) 창 크기를 조절하는 '동안' 부드럽게 렌더링
@@ -42,6 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // 직후이므로, 딜레이 없이 즉시 렌더링을 다시 실행합니다.
         renderSchedule();
     });
+
+    throttledResizeHandler = throttle(handleResizing, 50);
 
     renderSchedule();
 });
@@ -262,6 +276,18 @@ function renderSchedule() {
                     console.error("Invalid due date in schedule item:", item.dueDate);
                 }
             }
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'resize-handle';
+            // 핸들에 "ns-resize" (상하) 커서를 표시
+            resizeHandle.innerHTML = '<span class="material-icons">drag_handle</span>';
+
+            // 리사이즈 시작 이벤트 연결
+            resizeHandle.addEventListener('mousedown', (e) => {
+                // 부모(overlay)의 '이동' 드래그가 실행되지 않도록 막음
+                e.stopPropagation();
+                handleResizeStart(e, item.scheduleId);
+            });
+            titleOverlay.appendChild(resizeHandle);
 
             titleOverlay.draggable = true;
             titleOverlay.dataset.scheduleId = item.scheduleId;
@@ -292,9 +318,9 @@ function renderSchedule() {
 
         cell.addEventListener('contextmenu', (e) => {
             e.preventDefault(); // 기본 브라우저 메뉴 차단
-            
+
             // 클립보드에 복사된 내용이 있을 때만 메뉴를 보여줌
-            if (clipboard) { 
+            if (clipboard) {
                 showEmptyCellContextMenu(e.pageX, e.pageY, e.target.dataset.day, e.target.dataset.time);
             }
         });
@@ -397,7 +423,7 @@ function handleDragStart(e) {
 
         setTimeout(() => {
             document.querySelectorAll(`[data-schedule-id='${scheduleId}']`).forEach(cell => {
-                cell.style.opacity = '0.5';
+                // cell.style.opacity = '0.5';
             });
             document.body.removeChild(dragGhost);
         }, 0);
@@ -1390,7 +1416,7 @@ function showEmptyCellContextMenu(x, y, day, time) {
 /** [신규] 클립보드의 일정을 빈 셀에 붙여넣습니다. */
 function handlePaste() {
     const { day, time } = currentEmptyCellMenu;
-    
+
     if (!clipboard || !day || !time) {
         return; // 붙여넣을 내용이나 위치 정보가 없음
     }
@@ -1400,7 +1426,7 @@ function handlePaste() {
         alert('해당 시간에 일정을 붙여넣을 수 없습니다. (시간 중복)');
         return;
     }
-    
+
     // 2. 새 일정 객체 생성
     const newItem = {
         scheduleId: 's' + Date.now(),
@@ -1417,7 +1443,119 @@ function handlePaste() {
 
     // 4. 화면 다시 그리기
     renderSchedule();
-    
+
     // (선택사항) 붙여넣기 후 클립보드를 비우려면 아래 주석을 해제하세요.
     // clipboard = null; 
+}
+
+/* ========================================================== */
+/* 14. (신규) 일정 시간 조절 (Resize) 기능 */
+/* ========================================================== */
+
+/**
+ * 리사이즈 시작 (mousedown 이벤트)
+ */
+function handleResizeStart(e, scheduleId) {
+    e.preventDefault();
+    isResizing = true;
+    
+    const item = schedule.find(s => s.scheduleId === scheduleId);
+    const overlay = document.querySelector(`.subject-title-overlay[data-schedule-id="${scheduleId}"]`);
+    const cell = grid.querySelector('.schedule-cell'); // 30분짜리 셀 1개
+
+    if (!item || !overlay || !cell) return;
+
+    overlay.classList.add('is-resizing');
+
+    // 리사이즈 정보 저장
+    resizeInfo = {
+        scheduleId: scheduleId,
+        startY: e.clientY,
+        originalHeight: overlay.offsetHeight,
+        cellHeight: cell.offsetHeight,
+        item: item // 원본 데이터 참조
+    };
+
+    // 마우스를 움직일 때(mousemove)와 뗄 때(mouseup) 이벤트를
+    // '창(window)' 전체에 등록합니다.
+    window.addEventListener('mousemove', throttledResizeHandler);
+    window.addEventListener('mouseup', handleResizeEnd, { once: true });
+}
+
+/**
+ * 리사이즈 중 (mousemove 이벤트 - 스로틀됨)
+ * @param {MouseEvent} e
+ */
+function handleResizing(e) {
+    if (!isResizing) return;
+
+    // 1. 마우스가 움직인 거리 (Y축)
+    const deltaY = e.clientY - resizeInfo.startY;
+    
+    // 2. 새로운 높이 계산 (원래 높이 + 움직인 거리)
+    const newPixelHeight = resizeInfo.originalHeight + deltaY;
+
+    // 3. 픽셀 높이를 30분 단위(cellHeight)로 "스냅"
+    // (최소 1칸 = 30분)
+    const newSlots = Math.max(1, Math.round(newPixelHeight / resizeInfo.cellHeight));
+    const newDuration = newSlots * 30; // 새 지속 시간 (분)
+
+    // 4. 스냅된 높이를 오버레이에 실시간으로 적용 (시각적 피드백)
+    const snappedHeight = newSlots * resizeInfo.cellHeight;
+    const overlay = document.querySelector(`.subject-title-overlay.is-resizing`);
+    if (overlay) {
+        overlay.style.height = `${snappedHeight}px`;
+
+        // 5. [실시간 충돌 감지]
+        const { item } = resizeInfo;
+        const isValid = isTimeSlotAvailable(item.day, item.startTime, newDuration, item.scheduleId);
+        
+        // 유효하지 않으면 (다른 일정과 겹치면) 빨간색 테두리 표시
+        overlay.classList.toggle('is-invalid', !isValid);
+    }
+}
+
+/**
+ * 리사이즈 종료 (mouseup 이벤트)
+ */
+function handleResizeEnd() {
+    if (!isResizing) return;
+    isResizing = false;
+
+    const overlay = document.querySelector(`.subject-title-overlay.is-resizing`);
+    if (!overlay) {
+        // 혹시 모를 오류 방지
+        window.removeEventListener('mousemove', throttledResizeHandler);
+        renderSchedule(); // 그냥 원상복구
+        return;
+    }
+
+    // 1. 최종 높이에서 새 지속 시간(분) 계산
+    const finalPixelHeight = overlay.offsetHeight;
+    const newSlots = Math.max(1, Math.round(finalPixelHeight / resizeInfo.cellHeight));
+    const newDuration = newSlots * 30;
+
+    // 2. 데이터 업데이트
+    const item = schedule.find(s => s.scheduleId === resizeInfo.scheduleId);
+    
+    if (item) {
+        // 3. [최종 충돌 감지]
+        const isValid = isTimeSlotAvailable(item.day, item.startTime, newDuration, item.scheduleId);
+        
+        if (isValid) {
+            // 유효하면: 데이터 업데이트
+            item.duration = newDuration;
+        } else {
+            // 유효하지 않으면: 경고창
+            alert('다른 일정과 겹쳐서 시간을 조절할 수 없습니다.');
+        }
+    }
+
+    // 4. 전역 리스너 제거 및 정리
+    window.removeEventListener('mousemove', throttledResizeHandler);
+    overlay.classList.remove('is-resizing', 'is-invalid');
+    resizeInfo = {};
+
+    // 5. 최종본 렌더링 (성공했든 실패했든 원본 데이터 기준으로 다시 그림)
+    renderSchedule();
 }

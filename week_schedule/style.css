@@ -809,7 +809,9 @@ button {
 #empty-cell-context-menu li:hover {
     background-color: #f5f5f5;
 }
-
+#context-paste {
+    padding: 0px 20px;
+}
 #context-delete {
     color: var(--danger-color);
 }
@@ -1022,6 +1024,49 @@ button {
 
 .theme-grid-container .form-group.span-2 {
     grid-column: span 2;
+}
+
+/* ========================================================== */
+/* 9.5. 일정 리사이즈 핸들 (신규) */
+/* ========================================================== */
+
+.resize-handle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: ns-resize; /* 남-북 (상하) 리사이즈 커서 */
+    opacity: 0; /* 평소엔 숨김 */
+    transition: opacity 0.2s;
+}
+
+/* 오버레이에 호버했을 때만 핸들 보이기 */
+.subject-title-overlay:hover .resize-handle {
+    opacity: 0.8;
+}
+
+.resize-handle .material-icons {
+    color: white;
+    font-size: 16px;
+    /* 드래그 핸들 아이콘을 눕힘 */
+    transform: rotate(90deg);
+}
+
+/* 리사이즈 중일 때의 스타일 */
+.subject-title-overlay.is-resizing {
+    opacity: 0.7;
+    z-index: 100; /* 다른 요소 위로 */
+    border: 2px dashed var(--primary-color);
+}
+
+/* 리사이즈가 불가능할 때 (충돌) */
+.subject-title-overlay.is-invalid {
+    border-color: var(--danger-color);
+    background-color: rgba(231, 76, 60, 0.7) !important;
 }
 
 /* ========================================================== */
