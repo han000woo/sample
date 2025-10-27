@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeTitleEditor();
     initializeThemeModal();
     initializeSidebarToggle();
+    initializeBatchEditModal();
 
     // 1. (기존) 창 크기를 조절하는 '동안' 부드럽게 렌더링
     const throttledRender = throttle(renderSchedule, 150);
@@ -730,22 +731,10 @@ function handleEditTask(e) {
     const taskId = e.target.closest('.task-item').dataset.id;
     const task = batchTasks.find(t => t.id === taskId);
 
-    const newTitle = prompt('새 일정 이름을 입력하세요:', task.title);
-    if (newTitle) task.title = newTitle;
-
-    // ✨ [신규] 마감일 수정
-    const newDueDate = prompt('새 마감일을 입력하세요 (YYYY-MM-DD 형식):', task.dueDate || '');
-    if (newDueDate !== null) task.dueDate = newDueDate || null;
-
-    // ✨ [변경] 우선순위 수정 (3-level)
-    const newPriority = prompt('새 중요도(A, C, E)를 입력하세요:', task.priority)?.toUpperCase();
-    if (newPriority && ['A', 'C', 'E'].includes(newPriority)) {
-        task.priority = newPriority;
-    } else if (newPriority) {
-        alert("중요도는 'A', 'C', 'E' 중 하나여야 합니다.");
+    if (task) {
+        // 기존 prompt 대신 모달을 엽니다.
+        openBatchEditModal(task);
     }
-
-    renderBatchList();
 }
 /** (Delete) 배치 목록의 일정을 삭제합니다. */
 function handleDeleteTask(e) {
@@ -1558,4 +1547,80 @@ function handleResizeEnd() {
 
     // 5. 최종본 렌더링 (성공했든 실패했든 원본 데이터 기준으로 다시 그림)
     renderSchedule();
+}
+
+/* ========================================================== */
+/* 15. (신규) 배치 일정 수정 모달 기능 */
+/* ========================================================== */
+
+/**
+ * '배치 일정 수정' 모달의 이벤트 리스너를 초기화합니다.
+ */
+function initializeBatchEditModal() {
+    const modalOverlay = document.getElementById('batch-edit-modal-overlay');
+    const closeBtn = document.getElementById('batch-edit-modal-close-btn');
+    const form = document.getElementById('batch-edit-form');
+
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeBatchEditModal();
+        });
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeBatchEditModal);
+    }
+    if (form) {
+        form.addEventListener('submit', handleBatchEditFormSubmit);
+    }
+}
+
+/**
+ * '배치 일정 수정' 모달을 열고 폼 데이터를 채웁니다.
+ * @param {object} task - 수정할 task 객체
+ */
+function openBatchEditModal(task) {
+    // 1. 폼 데이터 채우기
+    document.getElementById('batch-editing-id').value = task.id;
+    document.getElementById('batch-edit-task-title').value = task.title;
+    document.getElementById('batch-edit-task-due-date').value = task.dueDate || '';
+    document.getElementById('batch-edit-task-priority').value = task.priority;
+
+    // 2. 모달 열기
+    document.getElementById('batch-edit-modal-overlay').classList.remove('hidden');
+}
+
+/**
+ * '배치 일정 수정' 모달을 닫습니다.
+ */
+function closeBatchEditModal() {
+    document.getElementById('batch-edit-modal-overlay').classList.add('hidden');
+    // (폼 리셋은 submit 핸들러가 처리)
+}
+
+/**
+ * '배치 일정 수정' 폼 제출을 처리합니다.
+ */
+function handleBatchEditFormSubmit(e) {
+    e.preventDefault();
+
+    // 1. 폼에서 값 읽어오기
+    const taskId = document.getElementById('batch-editing-id').value;
+    const newTitle = document.getElementById('batch-edit-task-title').value;
+    const newDueDate = document.getElementById('batch-edit-task-due-date').value;
+    const newPriority = document.getElementById('batch-edit-task-priority').value;
+
+    // 2. batchTasks 배열에서 원본 데이터 찾기
+    const task = batchTasks.find(t => t.id === taskId);
+
+    if (task) {
+        // 3. 데이터 업데이트
+        task.title = newTitle;
+        task.dueDate = newDueDate || null; // 빈 문자열은 null로 저장
+        task.priority = newPriority;
+    }
+
+    // 4. UI 갱신 및 모달 닫기
+    renderBatchList();
+    closeBatchEditModal();
+    document.getElementById('batch-edit-form').reset(); // 폼 초기화
 }

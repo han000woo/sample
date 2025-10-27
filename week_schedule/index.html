@@ -271,6 +271,39 @@
             <li id="context-paste">붙여넣기</li>
         </ul>
     </div>
+    <div id="batch-edit-modal-overlay" class="hidden">
+        <div id="batch-edit-modal-content">
+            <span id="batch-edit-modal-close-btn">&times;</span>
+            <h2>배치 일정 수정</h2>
+            <form id="batch-edit-form">
+                <input type="hidden" id="batch-editing-id">
+
+                <div class="form-group">
+                    <label for="batch-edit-task-title">일정명</label>
+                    <textarea id="batch-edit-task-title" rows="3" required></textarea>
+                </div>
+
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label for="batch-edit-task-due-date">마감일</label>
+                        <input type="date" id="batch-edit-task-due-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="batch-edit-task-priority">중요도</label>
+                        <select id="batch-edit-task-priority" required>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="E">E</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" id="batch-edit-form-submit-btn">저장</button>
+            </form>
+        </div>
+    </div>
     <div id="sidebar-overlay" class="hidden"></div>
     <script src="script.js"></script>
 </body>

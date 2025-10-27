@@ -694,7 +694,7 @@ button {
 /* ========================================================== */
 /* 6. 모달 및 컨텍스트 메뉴 */
 /* ========================================================== */
-#modal-overlay {
+#modal-overlay,#batch-edit-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -707,11 +707,13 @@ button {
     z-index: 2000;
 }
 
-#modal-overlay.hidden {
+#modal-overlay.hidden,
+#batch-edit-modal-overlay.hidden {
     display: none;
 }
 
-#modal-content {
+#modal-content,
+#batch-edit-modal-content {
     background-color: white;
     padding: 30px;
     border-radius: var(--border-radius);
@@ -720,7 +722,8 @@ button {
     position: relative;
 }
 
-#modal-close-btn {
+#modal-close-btn,
+#batch-edit-modal-close-btn {
     position: absolute;
     top: 15px;
     right: 20px;
@@ -741,6 +744,8 @@ button {
 }
 
 .form-group input[type="text"],
+.form-group textarea, 
+.form-group input[type="date"], 
 .form-group select {
     width: 100%;
     padding: 12px;
@@ -748,6 +753,11 @@ button {
     border-radius: 5px;
     font-size: 0.95rem;
     font-family: 'Noto Sans KR', sans-serif;
+}
+
+.form-group textarea {
+    resize: vertical; /* 세로로만 조절 가능 */
+    min-height: 80px;
 }
 
 .form-group input[type="color"] {
@@ -765,7 +775,8 @@ button {
     width: 100%;
 }
 
-#form-submit-btn {
+#form-submit-btn,
+#batch-edit-form-submit-btn {
     width: 100%;
     padding: 12px;
     background-color: var(--primary-color);
