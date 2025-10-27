@@ -7,8 +7,7 @@ const endH = 25;  // 그리드 종료 시간 (다음 날 새벽 1시)
 
 let subjects = []; // { id, title, color }
 let schedule = []; // { scheduleId, subjectId, day, startTime, duration, isAutoPlaced }
-let batchTasks = []; // { id, title, priority }
-let priorityMinutes = { A: 600, B: 480, C: 360, D: 240, E: 120 }; // 중요도별 목표 시간 (분)
+let batchTasks = []
 
 let draggedInfo = null;
 let currentContextMenu = { scheduleId: null, target: null };
@@ -27,10 +26,14 @@ let resizeInfo = {
 // 리사이즈 중 mousemove 이벤트를 스로틀(throttle)할 핸들러
 let throttledResizeHandler = null;
 
+const LS_COLORS_KEY = 'scheduleUsedColors';
+let usedColors = ['#3498db', '#e74c3c', '#f39c12', '#2ecc71', '#9b59b6', '#1abc9c']; // 기본 색상
+
 /* ========================================================== */
 /* 2. 초기화 함수 (페이지 로딩 시) */
 /* ========================================================== */
 document.addEventListener('DOMContentLoaded', () => {
+    loadUsedColors();
     createTimeGridRows();
     initializeButtons();
     initializeModal();
@@ -141,55 +144,15 @@ function initializeModal() {
 }
 
 /** 자동 배치 사이드바의 이벤트 리스너를 초기화합니다. */
+/** 자동 배치 사이드바의 이벤트 리스너를 초기화합니다. (✨ 수정됨) */
 function initializeBatchContainer() {
+
     document.getElementById('batch-form').addEventListener('submit', handleAddTask);
+
     document.getElementById('batch-place-btn').addEventListener('click', handleBatchPlace);
 
-    // ✨ 중요도 설정 접기/펴기 토글 이벤트
-    document.getElementById('priority-toggle').addEventListener('click', () => {
-        document.getElementById('priority-settings').classList.toggle('is-collapsed');
-    });
-
-    const priorities = ['A', 'B', 'C', 'D', 'E'];
-
-    priorities.forEach(prio => {
-        const hSelect = document.getElementById(`prio-${prio}-h`);
-        const mSelect = document.getElementById(`prio-${prio}-m`);
-
-        // 1. 시간(hour) 드롭다운 채우기 (0 ~ 24시간)
-        for (let i = 0; i <= 10; i++) {
-            hSelect.add(new Option(i, i));
-        }
-
-        // 2. priorityMinutes 데이터로 드롭다운 초기값 설정
-        const totalMins = priorityMinutes[prio];
-        const hours = Math.floor(totalMins / 60);
-        const mins = totalMins % 60;
-
-        hSelect.value = hours;
-        // 분(minute) 값이 0 또는 30이 아닐 경우 30으로 보정
-        mSelect.value = (mins >= 30) ? 30 : 0;
-
-        // 3. ✨ [변경] input 대신 select에 이벤트 리스너 추가
-        const updatePriority = () => {
-            const h = parseInt(hSelect.value) || 0;
-            const m = parseInt(mSelect.value) || 0;
-            priorityMinutes[prio] = (h * 60) + m;
-        };
-
-        hSelect.addEventListener('change', updatePriority);
-        mSelect.addEventListener('change', updatePriority);
-    });
-
-    // (샘플 데이터 및 renderBatchList 호출은 그대로 둡니다)
-    batchTasks = [
-        { id: 't1', title: '알고리즘 공부', priority: 'A' },
-        { id: 't2', title: '영어 회화', priority: 'B' },
-        { id: 't3', title: '프로젝트 기획', priority: 'C' },
-    ];
     renderBatchList();
 }
-
 /* ========================================================== */
 /* 3. 메인 시간표 렌더링 및 조작 */
 /* ========================================================== */
@@ -525,6 +488,7 @@ function openModal(data = {}) {
         if (data.startTime) subjectForm['subject-start-time'].value = data.startTime;
         updateDurationOptions();
     }
+    renderRecentColorsPalette();
 
     document.getElementById('modal-overlay').classList.remove('hidden');
 }
@@ -578,6 +542,8 @@ function handleFormSubmit(e) {
             isAutoPlaced: false,
         });
     }
+
+    addUsedColor(color);
 
     renderSchedule();
     closeModal();
@@ -655,32 +621,33 @@ function updateDurationOptions(ignoreId = null) {
 /** (Create) 배치 목록에 새 일정을 추가합니다. */
 function handleAddTask(e) {
     e.preventDefault();
-    const titleInput = document.getElementById('task-title');
+    const form = e.target;
 
-    // 1. [수정] <select> 드롭다운에서 우선순위를 읽어옵니다.
-    const prioritySelect = document.getElementById('task-priority');
-    const priority = prioritySelect.value; // 'A', 'B', 'C' 등
+    const title = form['task-title'].value;
+    const dueDate = form['task-due-date'].value || null;
+    const priority = form['task-priority'].value;
 
-    // 2. 마감일 값을 읽어옵니다.
-    const dueDateInput = document.getElementById('task-due-date');
-
-    if (titleInput.value) {
-        // 3. 올바른 우선순위(priority)로 데이터를 저장합니다.
+    // 새 스케줄 규칙 읽기
+    const scheduleRule = {
+        duration: parseInt(form['task-duration'].value),
+        frequencyType: form['task-frequency-type'].value,
+        count: parseInt(form['task-frequency-count'].value)
+    };
+    if (title && scheduleRule.count > 0) {
         batchTasks.push({
             id: 't' + Date.now(),
-            title: titleInput.value,
+            title: title,
             priority: priority,
-            dueDate: dueDateInput.value || null
+            dueDate: dueDate,
+            scheduleRule: scheduleRule // ✨ 규칙 객체 저장
         });
 
-        // 4. 목록을 다시 그립니다.
         renderBatchList();
-        e.target.reset(); // 폼 리셋 (textarea, date, select)
-
-        // 5. [수정] <select>의 값을 기본값('C')으로 리셋합니다.
-        // (e.target.reset()이 이미 이 작업을 수행하지만,
-        //  C가 selected이므로 명시적으로 둘 수 있습니다.)
-        prioritySelect.value = 'C';
+        form.reset(); // 폼 리셋
+        form['task-duration'].value = 120; // 기본값 복원
+        form['task-priority'].value = 'C';
+        form['task-frequency-type'].value = 'weekly';
+        form['task-frequency-count'].value = 3;
     }
 }
 /** (Read) 배치 목록을 화면에 다시 그립니다. */
@@ -694,12 +661,22 @@ function renderBatchList() {
         item.className = 'task-item';
         item.dataset.id = task.id;
 
-        // ✨ [신규] 마감일 표시 로직
+        // --- [신규] 표시용 텍스트 생성 ---
+        const rule = task.scheduleRule;
+        let durationText = `${rule.duration}분`;
+        if (rule.duration >= 60) {
+            durationText = `${rule.duration / 60}시간`;
+        }
+        let freqText = (rule.frequencyType === 'daily') ? '매일' : '주';
+        let countText = `${rule.count}회`;
+
+        const ruleText = `${durationText}씩 / ${freqText} ${countText}`;
+        // --- [신규] 끝 ---
+
         let dueDateHtml = '';
         if (task.dueDate) {
-            // YYYY-MM-DD 형식에서 월/일만 추출
             try {
-                const date = new Date(task.dueDate + 'T00:00:00'); // 시간대 문제 방지
+                const date = new Date(task.dueDate + 'T00:00:00');
                 const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
                 dueDateHtml = `<span class="task-due-date">마감: ${formattedDate}</span>`;
             } catch (e) { console.error("Invalid date format:", task.dueDate); }
@@ -707,18 +684,19 @@ function renderBatchList() {
 
         // ✨ [변경] HTML 구조 수정
         item.innerHTML = `
-            <div class="task-info">
-                <span class="priority-badge prio-${task.priority}">${task.priority}</span>
-                <div class="task-details">
-                    <span class="task-title">${task.title}</span>
-                    ${dueDateHtml}
-                </div>
-            </div>
-            <div class="task-actions">
-                <button class="edit-task" title="수정"><span class="material-icons">edit</span></button>
-                <button class="delete-task" title="삭제"><span class="material-icons">delete</span></button>
-            </div>
-        `;
+<div class="task-info">
+<span class="priority-badge prio-${task.priority}">${task.priority}</span>
+<div class="task-details">
+ <span class="task-title">${task.title}</span>
+ <span class="task-rule">${ruleText}</span>
+ ${dueDateHtml}
+</div>
+</div>
+<div class="task-actions">
+ <button class="edit-task" title="수정"><span class="material-icons">edit</span></button>
+ <button class="delete-task" title="삭제"><span class="material-icons">delete</span></button>
+</div>
+`;
         listContainer.appendChild(item);
     });
 
@@ -750,79 +728,108 @@ function handleBatchPlace() {
     // 1. 기존 자동 배치 일정 제거
     schedule = schedule.filter(item => !item.isAutoPlaced);
 
-    // 2. 중요도별 목표 시간에 따라 일정 조각(chunk) 생성
-    const chunks = [];
-    batchTasks.forEach(task => {
-        const totalDuration = priorityMinutes[task.priority]; // 분 단위 총 시간
-        let remaining = totalDuration;
-        while (remaining > 0) {
-            const chunkSize = Math.min(remaining, 120); // 최대 2시간(120분) 단위로 자르기
+    // 2. 평일의 빈 시간 슬롯 찾기 
+    const weekdays = ['월', '화', '수', '목', '금']
+    let availableSlots = findAvailableSlots(weekdays)
 
-            chunks.push({
-                title: task.title,
-                duration: chunkSize,
-                priority: task.priority,
-                dueDate: task.dueDate // 이 줄을 추가하세요
-            });
-            remaining -= chunkSize;
+    // 3. 중요도 순으로 태스크 정렬
+    const sortedTasks = [...batchTasks].sort((a, b) => a.priority.localeCompare(b.priority));
+
+    // 4. 정렬된 태스크를 순서대로 배치
+    sortedTasks.forEach(task => {
+        availableSlots = placeTask(task, availableSlots, weekdays);
+    });
+
+    renderSchedule()
+}
+function placeTask(task, availableSlots, weekdays) {
+    let placedCount = 0;
+    const rule = task.scheduleRule;
+    const duration = rule.duration;
+    const totalCount = rule.count;
+
+    // 1. 매일 배치 로직
+    if (rule.frequencyType === 'daily') {
+        // '매일 1회' (횟수는 count 무시)
+        for (const day of weekdays) {
+            // 해당 요일에서 배치 가능한 첫 번째 슬롯 찾기
+            const slotIndex = availableSlots.findIndex(slot =>
+                slot.day === day && isTimeSlotAvailable(day, slot.startTime, duration, null))
+            if (slotIndex !== -1) {
+                const slot = availableSlots[slotIndex];
+                placeChunk(task, slot.day, slot.startTime, duration);
+
+                // 사용된 슬롯 제거 (availableSlots 업데이트)
+                availableSlots = removeUsedSlots(availableSlots, slot.day, slot.startTime, duration);
+                placedCount++;
+            }
         }
-    });
+    }// 2. '주(총)' 배치 로직
+    else {
+        // '주 totalCount 회'
+        // 슬롯을 섞어서 배치가 한쪽에 몰리지 않게 함
+        shuffleArray(availableSlots);
 
-    // 3. 중요도(A가 먼저) > 시간 길이(긴 것 먼저) 순으로 정렬
-    chunks.sort((a, b) => {
-        if (a.priority !== b.priority) return a.priority.localeCompare(b.priority);
-        return b.duration - a.duration;
-    });
+        for (let i = 0; i < availableSlots.length; i++) {
+            if (placedCount >= totalCount) break; // 목표 횟수 달성
 
-    // 4. 평일의 빈 시간 슬롯 찾기
-    const weekdays = ['월', '화', '수', '목', '금'];
-    const availableSlots = [];
-    for (const day of weekdays) {
-        for (let h = startH; h < endH; h++) {
-            for (let m = 0; m < 60; m += 30) {
-                const time = `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                if (isTimeSlotAvailable(day, time, 30, null)) {
-                    availableSlots.push({ day, startTime: time });
-                }
+            const slot = availableSlots[i];
+
+            // 이 슬롯에 배치가 가능한지 *다시* 확인
+            // (shuffleArray 이후 availableSlots는 최신 상태가 아닐 수 있으므로)
+            if (isTimeSlotAvailable(slot.day, slot.startTime, duration, null)) {
+                placeChunk(task, slot.day, slot.startTime, duration);
+
+                // 사용된 슬롯 제거
+                availableSlots = removeUsedSlots(availableSlots, slot.day, slot.startTime, duration);
+                placedCount++;
             }
         }
     }
 
-    shuffleArray(availableSlots); // 빈 슬롯 섞기
-
-    // 5. 정렬된 청크를 빈 슬롯에 배치
-    chunks.forEach(chunk => {
-        let placed = false;
-        for (let i = 0; i < availableSlots.length; i++) {
-            const slot = availableSlots[i];
-            if (isTimeSlotAvailable(slot.day, slot.startTime, chunk.duration, null)) {
-                placeChunk(chunk, slot.day, slot.startTime);
-
-                // 사용된 슬롯은 availableSlots에서 제거
-                const startMin = timeToMinutes(slot.startTime);
-                const endMin = startMin + chunk.duration;
-                for (let t = startMin; t < endMin; t += 30) {
-                    const timeToRemove = minutesToTime(t);
-                    const indexToRemove = availableSlots.findIndex(s => s.day === slot.day && s.startTime === timeToRemove);
-                    if (indexToRemove !== -1) availableSlots.splice(indexToRemove, 1);
-                }
-                placed = true;
-                break;
-            }
-        }
-    });
-
-    renderSchedule();
+    return availableSlots; // 사용된 슬롯이 제거된, 업데이트된 슬롯 리스트 반환
 }
 
-/** 일정 조각을 시간표에 실제로 배치하는 헬퍼 함수 */
-function placeChunk(chunk, day, startTime) {
-    let subject = subjects.find(s => s.title === chunk.title);
+/** [신규] 빈 시간 슬롯을 찾아 반환하는 헬퍼 함수 */
+function findAvailableSlots(days) {
+    const slots = [];
+    for (const day of days) {
+        for (let h = startH; h < endH; h++) {
+            for (let m = 0; m < 60; m += 30) {
+                const time = `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                if (isTimeSlotAvailable(day, time, 30, null)) {
+                    slots.push({ day, startTime: time });
+                }
+            }
+        }
+    }
+    return slots;
+}
+
+/** [신규] 사용된 슬롯을 슬롯 목록에서 제거하는 헬퍼 함수 */
+function removeUsedSlots(slots, day, startTime, duration) {
+    const startMin = timeToMinutes(startTime);
+    const endMin = startMin + duration;
+
+    return slots.filter(slot => {
+        // 같은 날짜가 아니면 무조건 통과
+        if (slot.day !== day) return true;
+
+        // 같은 날짜면, 시간이 겹치는지 확인
+        const slotMin = timeToMinutes(slot.startTime);
+        // (겹치면 false, 안 겹치면 true 반환)
+        return slotMin < startMin || slotMin >= endMin;
+    });
+}
+
+/** 일정 조각을 시간표에 실제로 배치하는 헬퍼 함수 (✨ 파라미터 수정됨) */
+function placeChunk(task, day, startTime, duration) {
+    let subject = subjects.find(s => s.title === task.title);
     if (!subject) {
         subject = {
             id: Date.now() + subjects.length,
-            title: chunk.title,
-            color: getPriorityColor(chunk.priority),
+            title: task.title,
+            color: getPriorityColor(task.priority), // ✨ priority 사용
         };
         subjects.push(subject);
     }
@@ -830,9 +837,9 @@ function placeChunk(chunk, day, startTime) {
         scheduleId: 'auto' + Date.now() + Math.random(),
         subjectId: subject.id,
         day, startTime,
-        duration: chunk.duration,
+        duration: duration, // ✨ 파라미터 사용
         isAutoPlaced: true,
-        dueDate: chunk.dueDate || null // 이 줄을 추가하세요
+        dueDate: task.dueDate || null // ✨ dueDate 사용
     });
 }
 
@@ -1447,7 +1454,7 @@ function handlePaste() {
 function handleResizeStart(e, scheduleId) {
     e.preventDefault();
     isResizing = true;
-    
+
     const item = schedule.find(s => s.scheduleId === scheduleId);
     const overlay = document.querySelector(`.subject-title-overlay[data-schedule-id="${scheduleId}"]`);
     const cell = grid.querySelector('.schedule-cell'); // 30분짜리 셀 1개
@@ -1480,7 +1487,7 @@ function handleResizing(e) {
 
     // 1. 마우스가 움직인 거리 (Y축)
     const deltaY = e.clientY - resizeInfo.startY;
-    
+
     // 2. 새로운 높이 계산 (원래 높이 + 움직인 거리)
     const newPixelHeight = resizeInfo.originalHeight + deltaY;
 
@@ -1498,7 +1505,7 @@ function handleResizing(e) {
         // 5. [실시간 충돌 감지]
         const { item } = resizeInfo;
         const isValid = isTimeSlotAvailable(item.day, item.startTime, newDuration, item.scheduleId);
-        
+
         // 유효하지 않으면 (다른 일정과 겹치면) 빨간색 테두리 표시
         overlay.classList.toggle('is-invalid', !isValid);
     }
@@ -1526,11 +1533,11 @@ function handleResizeEnd() {
 
     // 2. 데이터 업데이트
     const item = schedule.find(s => s.scheduleId === resizeInfo.scheduleId);
-    
+
     if (item) {
         // 3. [최종 충돌 감지]
         const isValid = isTimeSlotAvailable(item.day, item.startTime, newDuration, item.scheduleId);
-        
+
         if (isValid) {
             // 유효하면: 데이터 업데이트
             item.duration = newDuration;
@@ -1585,6 +1592,11 @@ function openBatchEditModal(task) {
     document.getElementById('batch-edit-task-due-date').value = task.dueDate || '';
     document.getElementById('batch-edit-task-priority').value = task.priority;
 
+    //스케줄 규칙 채우기
+    document.getElementById('batch-edit-task-duration').value = task.scheduleRule.duration;
+    document.getElementById('batch-edit-task-frequency-type').value = task.scheduleRule.frequencyType;
+    document.getElementById('batch-edit-task-frequency-count').value = task.scheduleRule.count;
+
     // 2. 모달 열기
     document.getElementById('batch-edit-modal-overlay').classList.remove('hidden');
 }
@@ -1609,6 +1621,12 @@ function handleBatchEditFormSubmit(e) {
     const newDueDate = document.getElementById('batch-edit-task-due-date').value;
     const newPriority = document.getElementById('batch-edit-task-priority').value;
 
+    const newScheduleRule = {
+        duration: parseInt(document.getElementById('batch-edit-task-duration').value),
+        frequencyType: document.getElementById('batch-edit-task-frequency-type').value,
+        count: parseInt(document.getElementById('batch-edit-task-frequency-count').value)
+    };
+
     // 2. batchTasks 배열에서 원본 데이터 찾기
     const task = batchTasks.find(t => t.id === taskId);
 
@@ -1617,10 +1635,99 @@ function handleBatchEditFormSubmit(e) {
         task.title = newTitle;
         task.dueDate = newDueDate || null; // 빈 문자열은 null로 저장
         task.priority = newPriority;
+        task.scheduleRule = newScheduleRule; //  규칙 업데이트
     }
 
     // 4. UI 갱신 및 모달 닫기
     renderBatchList();
     closeBatchEditModal();
     document.getElementById('batch-edit-form').reset(); // 폼 초기화
+}
+
+/* ========================================================== */
+/* 16. (신규) 최근 사용 색상 팔레트 기능 */
+/* ========================================================== */
+
+/**
+ * 앱 시작 시 localStorage에서 저장된 색상을 불러옵니다.
+ */
+function loadUsedColors() {
+    const storedColors = localStorage.getItem(LS_COLORS_KEY);
+    if (storedColors) {
+        try {
+            const parsedColors = JSON.parse(storedColors);
+            if (Array.isArray(parsedColors) && parsedColors.length > 0) {
+                usedColors = parsedColors;
+            }
+        } catch (e) {
+            console.error("최근 색상 불러오기 실패:", e);
+            // 실패 시 기본값(전역 변수)을 사용
+        }
+    }
+    // 저장된 색상이 없으면 전역 변수에 정의된 기본 색상을 사용합니다.
+}
+
+/**
+ * usedColors 배열을 localStorage에 저장합니다.
+ */
+function saveUsedColors() {
+    localStorage.setItem(LS_COLORS_KEY, JSON.stringify(usedColors));
+}
+
+/**
+ * 새 색상을 usedColors 배열의 맨 앞에 추가합니다. (최대 12개)
+ * @param {string} color - #RRGGBB 형식의 색상 코드
+ */
+function addUsedColor(color) {
+    if (!color) return;
+    
+    // 1. 이미 배열에 있는지 확인 (중복 제거)
+    const existingIndex = usedColors.indexOf(color);
+    if (existingIndex > -1) {
+        // 이미 있지만, 맨 앞이 아니라면 맨 앞으로 이동
+        if (existingIndex > 0) {
+            usedColors.splice(existingIndex, 1);
+            usedColors.unshift(color);
+            saveUsedColors();
+        }
+        return; // 이미 맨 앞에 있으므로 종료
+    }
+
+    // 2. 새 색상을 맨 앞에 추가
+    usedColors.unshift(color);
+
+    // 3. 팔레트 최대 개수 제한 (예: 12개)
+    if (usedColors.length > 12) {
+        usedColors = usedColors.slice(0, 12);
+    }
+
+    // 4. localStorage에 저장
+    saveUsedColors();
+}
+
+/**
+ * '새 일정 추가' 모달에 최근 사용 색상 팔레트를 그립니다.
+ */
+function renderRecentColorsPalette() {
+    const palette = document.getElementById('recent-colors-palette');
+    if (!palette) return;
+
+    palette.innerHTML = ''; // 팔레트 비우기
+    const colorInput = document.getElementById('subject-color'); // 메인 컬러 피커
+
+    usedColors.forEach(color => {
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+        swatch.style.backgroundColor = color;
+        swatch.title = color; // 마우스 오버 시 색상 코드 표시
+
+        // 스와치 클릭 시, 메인 컬러 피커의 색상을 변경
+        swatch.addEventListener('click', () => {
+            if (colorInput) {
+                colorInput.value = color;
+            }
+        });
+
+        palette.appendChild(swatch);
+    });
 }

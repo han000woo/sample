@@ -344,11 +344,12 @@ button {
     overflow: hidden;
 }
 
-.batch-list-section label {
+.batch-list-section label,
+#batch-edit-modal-content .form-group label {
     font-weight: bold;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     display: block;
-    margin-bottom: 12px;
+    margin-bottom: 5px;
 }
 
 /* 일정 추가 폼 */
@@ -362,12 +363,24 @@ button {
 #batch-form {
     display: flex;
     flex-direction: column;
-    /* 세로 정렬로 변경 */
-    gap: 15px;
-    /* 컴포넌트 사이 간격 */
+    gap: 10px;
+    /* [수정] 15px -> 10px */
     margin-bottom: 15px;
     border-top: 1px solid #e9ecef;
     padding-top: 15px;
+}
+
+#batch-form input[type="number"] {
+    width: 100%;
+}
+
+/* [신규] 폼 안의 행 그룹 스타일 */
+#batch-form .form-group-row {
+    gap: 10px;
+}
+
+#batch-form .form-group-row .form-group {
+    margin-bottom: 0;
 }
 
 /* 1. 일정 이름 입력칸 (Textarea) */
@@ -447,17 +460,23 @@ button {
 /* 4. 최종 추가 버튼 (기존 아이콘 버튼 스타일 교체) */
 #batch-form button[type="submit"] {
     width: 100%;
-    height: auto;
-    padding: 12px;
-    font-size: 1rem;
-    font-weight: bold;
+    padding: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    /* (기존 버튼 스타일이 덮어써지도록 !important를 사용하거나, 기존 스타일을 수정하세요) */
     border-radius: 5px !important;
     background-color: var(--primary-color) !important;
+    color: white;
+    height: auto;
+    border: none;
+    cursor: pointer;
+}
+
+#batch-form button[type="submit"] .material-icons {
+    font-size: 1.1rem;
 }
 
 /* ----- 일정 목록 UI 수정 (마감일 추가) ----- */
@@ -471,24 +490,46 @@ button {
     flex-direction: column;
     flex-grow: 1;
     overflow: hidden;
+    gap: 4px;
 }
 
 .task-title {
     font-weight: 500;
+    font-size: 0.9rem;
     white-space: pre-line;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.4;
+    /* [수정] */
+    color: #222;
+    /* [신규] */
+}
+
+.task-rule {
+    font-size: 0.8rem;
+    color: var(--dark-gray-color);
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .task-due-date {
     font-size: 0.8rem;
     color: var(--danger-color);
     font-weight: 500;
+    white-space: nowrap;
+}
+
+.task-actions {
+    display: flex;
+    flex-shrink: 0;
+    margin-left: 10px;
+    align-self: center;
 }
 
 #batch-form input,
 #batch-form select {
     padding: 10px;
+    height: 40px;
     border: 1px solid var(--gray-color);
     border-radius: 5px;
     font-size: 0.9rem;
@@ -517,22 +558,30 @@ button {
 #batch-list {
     flex-grow: 1;
     overflow-y: auto;
+    padding-right: 5px;
 }
 
 .task-item {
     display: flex;
-    align-items: center;
+    /* [수정] align-items: center -> flex-start (상단 정렬) */
+    align-items: flex-start;
     justify-content: space-between;
-    padding: 10px 12px;
-    border-radius: 5px;
+    padding: 12px;
+    /* [수정] 패딩 살짝 증가 */
+    border-radius: 6px;
+    /* [수정] */
     margin-bottom: 8px;
     background-color: white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--grid-border-color);
+    /* [신규] 경계선 추가 */
+    box-shadow: none;
+    /* [수정] box-shadow -> border로 변경 */
+    transition: background-color 0.2s;
 }
 
 .task-info {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     font-weight: 500;
     font-size: 0.9rem;
@@ -577,7 +626,11 @@ button {
     cursor: pointer;
     color: var(--dark-gray-color);
     font-size: 1.1rem;
-    padding: 2px;
+    padding: 4px;
+}
+
+.task-actions button:hover {
+    background-color: var(--light-gray-color);
 }
 
 /* 자동 배치 실행 버튼 */
@@ -694,7 +747,8 @@ button {
 /* ========================================================== */
 /* 6. 모달 및 컨텍스트 메뉴 */
 /* ========================================================== */
-#modal-overlay,#batch-edit-modal-overlay {
+#modal-overlay,
+#batch-edit-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -744,8 +798,8 @@ button {
 }
 
 .form-group input[type="text"],
-.form-group textarea, 
-.form-group input[type="date"], 
+.form-group textarea,
+.form-group input[type="date"],
 .form-group select {
     width: 100%;
     padding: 12px;
@@ -756,7 +810,8 @@ button {
 }
 
 .form-group textarea {
-    resize: vertical; /* 세로로만 조절 가능 */
+    resize: vertical;
+    /* 세로로만 조절 가능 */
     min-height: 80px;
 }
 
@@ -789,7 +844,8 @@ button {
     margin-top: 20px;
 }
 
-#context-menu, #empty-cell-context-menu {
+#context-menu,
+#empty-cell-context-menu {
     position: absolute;
     z-index: 3000;
     background-color: white;
@@ -820,9 +876,11 @@ button {
 #empty-cell-context-menu li:hover {
     background-color: #f5f5f5;
 }
+
 #context-paste {
     padding: 0px 20px;
 }
+
 #context-delete {
     color: var(--danger-color);
 }
@@ -1050,8 +1108,10 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: ns-resize; /* 남-북 (상하) 리사이즈 커서 */
-    opacity: 0; /* 평소엔 숨김 */
+    cursor: ns-resize;
+    /* 남-북 (상하) 리사이즈 커서 */
+    opacity: 0;
+    /* 평소엔 숨김 */
     transition: opacity 0.2s;
 }
 
@@ -1070,7 +1130,8 @@ button {
 /* 리사이즈 중일 때의 스타일 */
 .subject-title-overlay.is-resizing {
     opacity: 0.7;
-    z-index: 100; /* 다른 요소 위로 */
+    z-index: 100;
+    /* 다른 요소 위로 */
     border: 2px dashed var(--primary-color);
 }
 
@@ -1110,4 +1171,28 @@ button {
 .batch-container.is-open {
     transform: translateX(0);
     box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
+}
+
+/* [신규] 최근 사용 색상 팔레트 */
+#recent-colors-palette {
+    display: flex;
+    flex-wrap: wrap; /* 색상이 많아지면 줄바꿈 */
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--light-gray-color);
+}
+
+.color-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #ffffff; /* 테두리를 주어 흰색도 보이게 */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s ease;
+}
+
+.color-swatch:hover {
+    transform: scale(1.1);
 }
