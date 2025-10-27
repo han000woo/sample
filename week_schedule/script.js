@@ -13,6 +13,8 @@ let priorityMinutes = { A: 600, B: 480, C: 360, D: 240, E: 120 }; // 중요도�
 let draggedInfo = null;
 let currentContextMenu = { scheduleId: null, target: null };
 
+let clipboard = null;
+let currentEmptyCellMenu = { target: null, day: null, time: null };
 /* ========================================================== */
 /* 2. 초기화 함수 (페이지 로딩 시) */
 /* ========================================================== */
@@ -21,8 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeButtons();
     initializeModal();
     initializeBatchContainer();
-    initializeTitleEditor(); // ▼▼▼ [신규] 추가 ▼▼▼
-    initializeThemeModal();  // ▼▼▼ [신규] 추가 ▼▼▼
+    initializeTitleEditor(); 
+    initializeThemeModal();  
     initializeSidebarToggle();
 
     // 1. (기존) 창 크기를 조절하는 '동안' 부드럽게 렌더링
@@ -288,6 +290,15 @@ function renderSchedule() {
             openModal({ day: e.target.dataset.day, startTime: e.target.dataset.time });
         });
 
+        cell.addEventListener('contextmenu', (e) => {
+            e.preventDefault(); // 기본 브라우저 메뉴 차단
+            
+            // 클립보드에 복사된 내용이 있을 때만 메뉴를 보여줌
+            if (clipboard) { 
+                showEmptyCellContextMenu(e.pageX, e.pageY, e.target.dataset.day, e.target.dataset.time);
+            }
+        });
+
         // 👇 [수정] 드래그 이벤트 리스너 추가
         cell.addEventListener('dragover', handleDragOver);
         cell.addEventListener('dragleave', clearDragHighlights); // ✨ [추가]
@@ -299,7 +310,7 @@ function renderSchedule() {
 
 /** 컨텍스트 메뉴(우클릭 메뉴)를 엽니다. */
 function showContextMenu(x, y, scheduleId) {
-    hideContextMenu(); // 기존 메뉴 숨기기
+    hideAllContextMenus(); // 기존 메뉴 숨기기
     const menu = document.getElementById('context-menu');
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
@@ -308,6 +319,7 @@ function showContextMenu(x, y, scheduleId) {
     currentContextMenu.target = menu;
 
     document.getElementById('context-edit').onclick = () => handleEdit(scheduleId);
+    document.getElementById('context-copy').onclick = () => handleCopy(scheduleId);
     document.getElementById('context-delete').onclick = () => handleDelete(scheduleId);
 
     setTimeout(() => {
@@ -322,6 +334,20 @@ function hideContextMenu() {
         currentContextMenu.target = null;
         currentContextMenu.scheduleId = null;
     }
+}
+
+function hideEmptyCellContextMenu() {
+    if (currentEmptyCellMenu.target) {
+        currentEmptyCellMenu.target.classList.add('hidden');
+        currentEmptyCellMenu.target = null;
+        currentEmptyCellMenu.day = null;
+        currentEmptyCellMenu.time = null;
+    }
+}
+
+function hideAllContextMenus() {
+    hideContextMenu();
+    hideEmptyCellContextMenu();
 }
 
 /** 일정 수정 (모달 열기) */
@@ -1317,4 +1343,81 @@ function throttle(func, limit) {
             }, limit);
         }
     };
+}
+
+/* ========================================================== */
+/* 13. (신규) 복사 & 붙여넣기 기능 */
+/* ========================================================== */
+
+/** [신규] 일정을 클립보드에 복사합니다. */
+function handleCopy(scheduleId) {
+    const itemToCopy = schedule.find(s => s.scheduleId === scheduleId);
+    if (itemToCopy) {
+        // scheduleId, day, startTime을 제외한 '내용물'을 복사합니다.
+        clipboard = {
+            subjectId: itemToCopy.subjectId,
+            duration: itemToCopy.duration,
+            isAutoPlaced: false, // 복사/붙여넣기는 수동으로 간주
+            dueDate: null // 마감일은 복사하지 않음
+        };
+        // console.log('일정이 복사되었습니다:', clipboard);
+    }
+}
+
+/** [신규] 빈 셀에 '붙여넣기' 컨텍스트 메뉴를 엽니다. */
+function showEmptyCellContextMenu(x, y, day, time) {
+    hideAllContextMenus(); // 모든 메뉴 숨기기
+
+    const menu = document.getElementById('empty-cell-context-menu');
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+    menu.classList.remove('hidden');
+
+    // 붙여넣을 위치 정보 저장
+    currentEmptyCellMenu.target = menu;
+    currentEmptyCellMenu.day = day;
+    currentEmptyCellMenu.time = time;
+
+    // '붙여넣기' 버튼 클릭 이벤트
+    document.getElementById('context-paste').onclick = () => handlePaste();
+
+    // 다른 곳 클릭 시 메뉴 닫기
+    setTimeout(() => {
+        window.addEventListener('click', hideEmptyCellContextMenu, { once: true });
+    }, 0);
+}
+
+/** [신규] 클립보드의 일정을 빈 셀에 붙여넣습니다. */
+function handlePaste() {
+    const { day, time } = currentEmptyCellMenu;
+    
+    if (!clipboard || !day || !time) {
+        return; // 붙여넣을 내용이나 위치 정보가 없음
+    }
+
+    // 1. 붙여넣을 공간이 비어있는지 확인
+    if (!isTimeSlotAvailable(day, time, clipboard.duration, null)) {
+        alert('해당 시간에 일정을 붙여넣을 수 없습니다. (시간 중복)');
+        return;
+    }
+    
+    // 2. 새 일정 객체 생성
+    const newItem = {
+        scheduleId: 's' + Date.now(),
+        subjectId: clipboard.subjectId,
+        day: day,
+        startTime: time,
+        duration: clipboard.duration,
+        isAutoPlaced: clipboard.isAutoPlaced,
+        dueDate: clipboard.dueDate
+    };
+
+    // 3. schedule 배열에 추가
+    schedule.push(newItem);
+
+    // 4. 화면 다시 그리기
+    renderSchedule();
+    
+    // (선택사항) 붙여넣기 후 클립보드를 비우려면 아래 주석을 해제하세요.
+    // clipboard = null; 
 }
