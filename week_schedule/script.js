@@ -905,48 +905,88 @@ function parseScheduleData(data, worksheet) {
     const merges = worksheet['!merges'] || [];
     const processedCells = Array(data.length).fill(0).map(() => Array(header.length).fill(false));
 
+    // [신규] 빈 셀에 사용할 기본값
+    const DEFAULT_EMPTY_TITLE = "미지정";
+    const DEFAULT_EMPTY_COLOR = "#BDBDBD"; // 회색
+
+    // 1. 병합된 셀 처리
     merges.forEach(merge => {
         const startRow = merge.s.r;
         const startCol = merge.s.c;
         const endRow = merge.e.r;
         if (startRow <= headerRowIndex) return;
-        const title = data[startRow][startCol];
+
         const day = dayMapping[header[startCol]];
 
-        if (title && day) {
+        // [수정] 'title' 체크를 'day' 체크로 변경
+        if (day) {
+            // [수정] title이 없으면(null, "") DEFAULT_EMPTY_TITLE을 사용
+            let title = (data[startRow][startCol] || DEFAULT_EMPTY_TITLE).trim();
+
             const startTime = convertExcelTime(data[startRow][0]);
             const duration = (endRow - startRow + 1) * 30;
+
             let subject = newSubjects.get(title);
             if (!subject) {
-                subject = { id: Date.now() + newSubjects.size, title, color: getRandomColor() };
+                // [수정] 빈 셀일 경우 기본 색상, 아니면 랜덤 색상
+                const color = (title === DEFAULT_EMPTY_TITLE) ? DEFAULT_EMPTY_COLOR : getRandomColor();
+                subject = { id: Date.now() + newSubjects.size, title, color: color };
                 newSubjects.set(title, subject);
             }
-            schedule.push({ scheduleId: `s${Date.now()}${startRow}${startCol}`, subjectId: subject.id, day, startTime, duration, isAutoPlaced: false });
+
+            schedule.push({
+                scheduleId: `s${Date.now()}${startRow}${startCol}`,
+                subjectId: subject.id,
+                day,
+                startTime,
+                duration,
+                isAutoPlaced: false
+            });
+
             for (let r = startRow; r <= endRow; r++) {
                 processedCells[r][startCol] = true;
             }
         }
     });
 
+    // 2. 병합되지 않은 일반 셀 처리
     for (let r = headerRowIndex + 1; r < data.length; r++) {
         for (let c = 1; c < header.length; c++) {
-            if (processedCells[r][c]) continue;
-            const title = data[r][c];
+            if (processedCells[r][c]) continue; // 이미 병합 셀로 처리됨
+
             const day = dayMapping[header[c]];
-            if (title && day) {
+
+            // [수정] 'title' 체크를 'day' 체크로 변경
+            if (day) {
+                // [수정] title이 없으면(null, "") DEFAULT_EMPTY_TITLE을 사용
+                let title = (data[r][c] || DEFAULT_EMPTY_TITLE).trim();
+
+                // [신규] 제목이 "미지정"인 경우 굳이 추가하지 않음 (선택적)
+                // 만약 글씨가 없는 30분짜리 모든 칸을 추가하고 싶다면 이 if문을 제거하세요.
+                if (title === DEFAULT_EMPTY_TITLE) continue;
+
                 const startTime = convertExcelTime(data[r][0]);
+
                 let subject = newSubjects.get(title);
                 if (!subject) {
-                    subject = { id: Date.now() + newSubjects.size, title, color: getRandomColor() };
+                    const color = (title === DEFAULT_EMPTY_TITLE) ? DEFAULT_EMPTY_COLOR : getRandomColor();
+                    subject = { id: Date.now() + newSubjects.size, title, color: color };
                     newSubjects.set(title, subject);
                 }
-                schedule.push({ scheduleId: `s${Date.now()}${r}${c}`, subjectId: subject.id, day, startTime, duration: 30, isAutoPlaced: false });
+
+                schedule.push({
+                    scheduleId: `s${Date.now()}${r}${c}`,
+                    subjectId: subject.id,
+                    day,
+                    startTime,
+                    duration: 30,
+                    isAutoPlaced: false
+                });
             }
         }
     }
     subjects = Array.from(newSubjects.values());
 }
-
 /** 엑셀 시간 숫자(소수)를 "HH:MM" 문자열로 변환합니다. */
 function convertExcelTime(excelTime) {
     if (excelTime === null || isNaN(excelTime)) return "00:00";
@@ -1080,7 +1120,7 @@ function getPriorityColor(priority) {
         A: '#D32F2F', B: '#F57C00', C: '#388E3C',
         D: '#1976D2', E: '#7B1FA2'
     };
-    return priorityColors[priority] || '#607D8B';
+    return priorityColors[priority] || '#77777';
 }
 
 
@@ -1680,7 +1720,7 @@ function saveUsedColors() {
  */
 function addUsedColor(color) {
     if (!color) return;
-    
+
     // 1. 이미 배열에 있는지 확인 (중복 제거)
     const existingIndex = usedColors.indexOf(color);
     if (existingIndex > -1) {
