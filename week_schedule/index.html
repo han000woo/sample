@@ -59,60 +59,81 @@
                 <h2>📝 자동 배치 목록</h2>
             </div>
 
+            <div id="priority-settings" class="is-collapsed">
+                <div id="priority-toggle" class="priority-toggle-header">
+                    <label>주간 목표 시간 설정</label>
+                    <span class="material-icons chevron">expand_more</span>
+                </div>
+                <div class="priority-content">
+                    <div class="priority-list">
+                        <div class="priority-item">
+                            <span class="priority-badge prio-A">A</span>
+                            <select id="prio-A-h" title="A등급 시간"></select> <em>시간</em>
+                            <select id="prio-A-m" title="A등급 분">
+                                <option value="0">0</option>
+                                <option value="30">30</option>
+                            </select> <em>분</em>
+                        </div>
+                        <div class="priority-item">
+                            <span class="priority-badge prio-B">B</span>
+                            <select id="prio-B-h" title="B등급 시간"></select> <em>시간</em>
+                            <select id="prio-B-m" title="B등급 분">
+                                <option value="0">0</option>
+                                <option value="30">30</option>
+                            </select> <em>분</em>
+                        </div>
+                        <div class="priority-item">
+                            <span class="priority-badge prio-C">C</span>
+                            <select id="prio-C-h" title="C등급 시간"></select> <em>시간</em>
+                            <select id="prio-C-m" title="C등급 분">
+                                <option value="0">0</option>
+                                <option value="30">30</option>
+                            </select> <em>분</em>
+                        </div>
+                        <div class="priority-item">
+                            <span class="priority-badge prio-D">D</span>
+                            <select id="prio-D-h" title="D등급 시간"></select> <em>시간</em>
+                            <select id="prio-D-m" title="D등급 분">
+                                <option value="0">0</option>
+                                <option value="30">30</option>
+                            </select> <em>분</em>
+                        </div>
+                        <div class="priority-item">
+                            <span class="priority-badge prio-E">E</span>
+                            <select id="prio-E-h" title="E등급 시간"></select> <em>시간</em>
+                            <select id="prio-E-m" title="E등급 분">
+                                <option value="0">0</option>
+                                <option value="30">30</option>
+                            </select> <em>분</em>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="batch-list-section">
                 <label>배치할 일정</label>
                 <form id="batch-form">
-                    <textarea id="task-title" placeholder="해야 할 일정 (예: 10장 읽기, 프로젝트 기획서 초안 작성)" rows="2"
-                        required></textarea>
+                    <textarea id="task-title" placeholder="해야 할 일정 (예: 알고리즘 공부)" rows="3" required></textarea>
 
-                    <div class="form-group-row">
-                        <div class="form-group">
-                            <label for="task-duration">단위 시간</label>
-                            <select id="task-duration">
-                                <option value="30">30분</option>
-                                <option value="60">1시간</option>
-                                <option value="90">1시간 30분</option>
-                                <option value="120" selected>2시간</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="task-frequency-type">빈도</label>
-                            <select id="task-frequency-type">
-                                <option value="weekly">주(총)</option>
-                                <option value="daily">매일</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="task-frequency-count">횟수</label>
-                            <input type="number" id="task-frequency-count" value="3" min="1" max="7">
-                        </div>
+                    <div class="form-row">
+                        <label for="task-due-date">마감일:</label>
+                        <input type="date" id="task-due-date">
                     </div>
-
-                    <div class="form-group-row">
-                        <div class="form-group">
-                            <label for="task-due-date">마감일</label>
-                            <input type="date" id="task-due-date">
-                        </div>
-                        <div class="form-group">
-                            <label for="task-priority">중요도</label>
-                            <select id="task-priority">
-                                <option value="A">A (필수)</option>
-                                <option value="B">B (중요)</option>
-                                <option value="C" selected>C (보통)</option>
-                                <option value="D">D</option>
-                                <option value="E">E</option>
-                            </select>
-                        </div>
+                    <div class="form-row" style="gap: 10px;">
+                        <select id="task-priority" title="중요도 선택" style="flex-grow: 1;">
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C" selected>C</option>
+                            <option value="D">D</option>
+                            <option value="E">E</option>
+                        </select>
+                        <button type="submit" title="목록에 추가" style="width: 50px; height: 42px; padding: 0;">
+                            <span class="material-icons">add</span>
+                        </button>
                     </div>
-
-                    <button type="submit" title="목록에 추가">
-                        <span class="material-icons">add_circle_outline</span>
-                        목록에 추가
-                    </button>
                 </form>
+
                 <div id="batch-list"></div>
             </div>
-
             <button id="batch-place-btn">
                 <span class="material-icons">auto_awesome</span>
                 일정 자동 배치 실행
@@ -260,30 +281,7 @@
 
                 <div class="form-group">
                     <label for="batch-edit-task-title">일정명</label>
-                    <textarea id="batch-edit-task-title" rows="2" required></textarea>
-                </div>
-
-                <div class="form-group-row">
-                    <div class="form-group">
-                        <label for="batch-edit-task-duration">단위 시간</label>
-                        <select id="batch-edit-task-duration">
-                            <option value="30">30분</option>
-                            <option value="60">1시간</option>
-                            <option value="90">1시간 30분</option>
-                            <option value="120">2시간</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="batch-edit-task-frequency-type">빈도</label>
-                        <select id="batch-edit-task-frequency-type">
-                            <option value="weekly">주(총)</option>
-                            <option value="daily">매일</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="batch-edit-task-frequency-count">횟수</label>
-                        <input type="number" id="batch-edit-task-frequency-count" min="1" max="7">
-                    </div>
+                    <textarea id="batch-edit-task-title" rows="3" required></textarea>
                 </div>
 
                 <div class="form-group-row">
@@ -294,9 +292,9 @@
                     <div class="form-group">
                         <label for="batch-edit-task-priority">중요도</label>
                         <select id="batch-edit-task-priority" required>
-                            <option value="A">A (필수)</option>
-                            <option value="B">B (중요)</option>
-                            <option value="C">C (보통)</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
                             <option value="D">D</option>
                             <option value="E">E</option>
                         </select>

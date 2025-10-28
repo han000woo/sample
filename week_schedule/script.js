@@ -8,7 +8,7 @@ const endH = 25;  // 그리드 종료 시간 (다음 날 새벽 1시)
 let subjects = []; // { id, title, color }
 let schedule = []; // { scheduleId, subjectId, day, startTime, duration, isAutoPlaced }
 let batchTasks = []
-
+let priorityMinutes = { A: 600, B: 480, C: 360, D: 240, E: 120 }
 let draggedInfo = null;
 let currentContextMenu = { scheduleId: null, target: null };
 
@@ -142,15 +142,48 @@ function initializeModal() {
     document.getElementById('subject-day').addEventListener('change', () => updateDurationOptions());
     document.getElementById('subject-start-time').addEventListener('change', () => updateDurationOptions());
 }
-
-/** 자동 배치 사이드바의 이벤트 리스너를 초기화합니다. */
-/** 자동 배치 사이드바의 이벤트 리스너를 초기화합니다. (✨ 수정됨) */
 function initializeBatchContainer() {
-
     document.getElementById('batch-form').addEventListener('submit', handleAddTask);
-
     document.getElementById('batch-place-btn').addEventListener('click', handleBatchPlace);
 
+    // ✨ 중요도 설정 접기/펴기 토글 이벤트
+    document.getElementById('priority-toggle').addEventListener('click', () => {
+        document.getElementById('priority-settings').classList.toggle('is-collapsed');
+    });
+
+    const priorities = ['A', 'B', 'C', 'D', 'E'];
+
+    priorities.forEach(prio => {
+        const hSelect = document.getElementById(`prio-${prio}-h`);
+        const mSelect = document.getElementById(`prio-${prio}-m`);
+
+        if (!hSelect || !mSelect) return; // HTML이 없으면 중단
+
+        // 1. 시간(hour) 드롭다운 채우기 (0 ~ 10시간)
+        for (let i = 0; i <= 10; i++) {
+            if (hSelect) hSelect.add(new Option(i, i));
+        }
+
+        // 2. priorityMinutes 데이터로 드롭다운 초기값 설정
+        const totalMins = priorityMinutes[prio] || 0; // [수정] || 0 추가
+        const hours = Math.floor(totalMins / 60);
+        const mins = totalMins % 60;
+
+        hSelect.value = hours;
+        mSelect.value = (mins >= 30) ? 30 : 0;
+
+        // 3. select에 이벤트 리스너 추가
+        const updatePriority = () => {
+            const h = parseInt(hSelect.value) || 0;
+            const m = parseInt(mSelect.value) || 0;
+            priorityMinutes[prio] = (h * 60) + m;
+        };
+
+        hSelect.addEventListener('change', updatePriority);
+        mSelect.addEventListener('change', updatePriority);
+    });
+
+    // 4. 페이지 로드 시 빈 목록을 렌더링합니다.
     renderBatchList();
 }
 /* ========================================================== */
@@ -617,40 +650,34 @@ function updateDurationOptions(ignoreId = null) {
 /* ========================================================== */
 /* 6. 자동 배치 사이드바 기능 (CRUD 및 배치) */
 /* ========================================================== */
-
-/** (Create) 배치 목록에 새 일정을 추가합니다. */
+/* ▼▼▼ [교체] handleAddTask 함수 ▼▼▼ */
+/** (Create) 배치 목록에 새 일정을 추가합니다. (✨ '주간 총 시간' 로직으로 복원) */
 function handleAddTask(e) {
     e.preventDefault();
-    const form = e.target;
+    const titleInput = document.getElementById('task-title');
+    const prioritySelect = document.getElementById('task-priority');
+    const dueDateInput = document.getElementById('task-due-date');
 
-    const title = form['task-title'].value;
-    const dueDate = form['task-due-date'].value || null;
-    const priority = form['task-priority'].value;
+    const title = titleInput.value;
+    const priority = prioritySelect.value;
+    const dueDate = dueDateInput.value || null;
 
-    // 새 스케줄 규칙 읽기
-    const scheduleRule = {
-        duration: parseInt(form['task-duration'].value),
-        frequencyType: form['task-frequency-type'].value,
-        count: parseInt(form['task-frequency-count'].value)
-    };
-    if (title && scheduleRule.count > 0) {
+    if (title) {
         batchTasks.push({
             id: 't' + Date.now(),
             title: title,
             priority: priority,
-            dueDate: dueDate,
-            scheduleRule: scheduleRule // ✨ 규칙 객체 저장
+            dueDate: dueDate
+            // scheduleRule 제거됨
         });
 
         renderBatchList();
-        form.reset(); // 폼 리셋
-        form['task-duration'].value = 120; // 기본값 복원
-        form['task-priority'].value = 'C';
-        form['task-frequency-type'].value = 'weekly';
-        form['task-frequency-count'].value = 3;
+        e.target.reset(); // 폼 리셋
+        prioritySelect.value = 'C'; // 기본값 복원
     }
 }
-/** (Read) 배치 목록을 화면에 다시 그립니다. */
+/* ▼▼▼ [교체] renderBatchList 함수 ▼▼▼ */
+/** (Read) 배치 목록을 화면에 다시 그립니다. (✨ '주간 총 시간' 로직으로 복원) */
 function renderBatchList() {
     const listContainer = document.getElementById('batch-list');
     listContainer.innerHTML = '';
@@ -661,18 +688,6 @@ function renderBatchList() {
         item.className = 'task-item';
         item.dataset.id = task.id;
 
-        // --- [신규] 표시용 텍스트 생성 ---
-        const rule = task.scheduleRule;
-        let durationText = `${rule.duration}분`;
-        if (rule.duration >= 60) {
-            durationText = `${rule.duration / 60}시간`;
-        }
-        let freqText = (rule.frequencyType === 'daily') ? '매일' : '주';
-        let countText = `${rule.count}회`;
-
-        const ruleText = `${durationText}씩 / ${freqText} ${countText}`;
-        // --- [신규] 끝 ---
-
         let dueDateHtml = '';
         if (task.dueDate) {
             try {
@@ -681,28 +696,28 @@ function renderBatchList() {
                 dueDateHtml = `<span class="task-due-date">마감: ${formattedDate}</span>`;
             } catch (e) { console.error("Invalid date format:", task.dueDate); }
         }
-
-        // ✨ [변경] HTML 구조 수정
+        
+        // HTML 구조 (단순화)
         item.innerHTML = `
-<div class="task-info">
-<span class="priority-badge prio-${task.priority}">${task.priority}</span>
-<div class="task-details">
- <span class="task-title">${task.title}</span>
- <span class="task-rule">${ruleText}</span>
- ${dueDateHtml}
-</div>
-</div>
-<div class="task-actions">
- <button class="edit-task" title="수정"><span class="material-icons">edit</span></button>
- <button class="delete-task" title="삭제"><span class="material-icons">delete</span></button>
-</div>
-`;
+            <div class="task-info">
+                <span class="priority-badge prio-${task.priority}">${task.priority}</span>
+                <div class="task-details">
+                    <span class="task-title">${task.title}</span>
+                                        ${dueDateHtml}
+                </div>
+            </div>
+            <div class="task-actions">
+                <button class="edit-task" title="수정"><span class="material-icons">edit</span></button>
+                <button class="delete-task" title="삭제"><span class="material-icons">delete</span></button>
+            </div>
+        `;
         listContainer.appendChild(item);
     });
 
     document.querySelectorAll('.edit-task').forEach(btn => btn.addEventListener('click', handleEditTask));
     document.querySelectorAll('.delete-task').forEach(btn => btn.addEventListener('click', handleDeleteTask));
 }
+/* ▲▲▲ [교체] 여기까지 ▲▲▲ */
 
 /** (Update) 배치 목록의 일정을 수정합니다. */
 function handleEditTask(e) {
@@ -723,113 +738,85 @@ function handleDeleteTask(e) {
     }
 }
 
-/** '자동 배치' 버튼을 눌렀을 때 실행되는 메인 함수 */
+/* ▼▼▼ [교체] handleBatchPlace 함수 (헬퍼 함수 삭제) ▼▼▼ */
+/** '자동 배치' 버튼을 눌렀을 때 실행되는 메인 함수 (✨ '주간 총 시간' 로직으로 복원) */
 function handleBatchPlace() {
     // 1. 기존 자동 배치 일정 제거
     schedule = schedule.filter(item => !item.isAutoPlaced);
 
-    // 2. 평일의 빈 시간 슬롯 찾기 
-    const weekdays = ['월', '화', '수', '목', '금']
-    let availableSlots = findAvailableSlots(weekdays)
-
-    // 3. 중요도 순으로 태스크 정렬
-    const sortedTasks = [...batchTasks].sort((a, b) => a.priority.localeCompare(b.priority));
-
-    // 4. 정렬된 태스크를 순서대로 배치
-    sortedTasks.forEach(task => {
-        availableSlots = placeTask(task, availableSlots, weekdays);
+    // 2. 중요도별 목표 시간에 따라 일정 조각(chunk) 생성
+    const chunks = [];
+    batchTasks.forEach(task => {
+        // [복원] priorityMinutes에서 총 시간을 가져옴
+        const totalDuration = priorityMinutes[task.priority] || 0;
+        let remaining = totalDuration;
+        while (remaining > 0) {
+            const chunkSize = Math.min(remaining, 120); // 최대 2시간(120분) 단위로 자르기
+            chunks.push({
+                title: task.title,
+                duration: chunkSize,
+                priority: task.priority,
+                dueDate: task.dueDate || null
+            });
+            remaining -= chunkSize;
+        }
     });
 
-    renderSchedule()
-}
-function placeTask(task, availableSlots, weekdays) {
-    let placedCount = 0;
-    const rule = task.scheduleRule;
-    const duration = rule.duration;
-    const totalCount = rule.count;
+    // 3. 중요도(A가 먼저) > 시간 길이(긴 것 먼저) 순으로 정렬
+    chunks.sort((a, b) => {
+        if (a.priority !== b.priority) return a.priority.localeCompare(b.priority);
+        return b.duration - a.duration;
+    });
 
-    // 1. 매일 배치 로직
-    if (rule.frequencyType === 'daily') {
-        // '매일 1회' (횟수는 count 무시)
-        for (const day of weekdays) {
-            // 해당 요일에서 배치 가능한 첫 번째 슬롯 찾기
-            const slotIndex = availableSlots.findIndex(slot =>
-                slot.day === day && isTimeSlotAvailable(day, slot.startTime, duration, null))
-            if (slotIndex !== -1) {
-                const slot = availableSlots[slotIndex];
-                placeChunk(task, slot.day, slot.startTime, duration);
-
-                // 사용된 슬롯 제거 (availableSlots 업데이트)
-                availableSlots = removeUsedSlots(availableSlots, slot.day, slot.startTime, duration);
-                placedCount++;
-            }
-        }
-    }// 2. '주(총)' 배치 로직
-    else {
-        // '주 totalCount 회'
-        // 슬롯을 섞어서 배치가 한쪽에 몰리지 않게 함
-        shuffleArray(availableSlots);
-
-        for (let i = 0; i < availableSlots.length; i++) {
-            if (placedCount >= totalCount) break; // 목표 횟수 달성
-
-            const slot = availableSlots[i];
-
-            // 이 슬롯에 배치가 가능한지 *다시* 확인
-            // (shuffleArray 이후 availableSlots는 최신 상태가 아닐 수 있으므로)
-            if (isTimeSlotAvailable(slot.day, slot.startTime, duration, null)) {
-                placeChunk(task, slot.day, slot.startTime, duration);
-
-                // 사용된 슬롯 제거
-                availableSlots = removeUsedSlots(availableSlots, slot.day, slot.startTime, duration);
-                placedCount++;
-            }
-        }
-    }
-
-    return availableSlots; // 사용된 슬롯이 제거된, 업데이트된 슬롯 리스트 반환
-}
-
-/** [신규] 빈 시간 슬롯을 찾아 반환하는 헬퍼 함수 */
-function findAvailableSlots(days) {
-    const slots = [];
-    for (const day of days) {
+    // 4. 평일의 빈 시간 슬롯 찾기
+    const weekdays = ['월', '화', '수', '목', '금'];
+    const availableSlots = [];
+    for (const day of weekdays) {
         for (let h = startH; h < endH; h++) {
             for (let m = 0; m < 60; m += 30) {
                 const time = `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                 if (isTimeSlotAvailable(day, time, 30, null)) {
-                    slots.push({ day, startTime: time });
+                    availableSlots.push({ day, startTime: time });
                 }
             }
         }
     }
-    return slots;
-}
 
-/** [신규] 사용된 슬롯을 슬롯 목록에서 제거하는 헬퍼 함수 */
-function removeUsedSlots(slots, day, startTime, duration) {
-    const startMin = timeToMinutes(startTime);
-    const endMin = startMin + duration;
+    shuffleArray(availableSlots); // 빈 슬롯 섞기
 
-    return slots.filter(slot => {
-        // 같은 날짜가 아니면 무조건 통과
-        if (slot.day !== day) return true;
+    // 5. 정렬된 청크를 빈 슬롯에 배치
+    chunks.forEach(chunk => {
+        let placed = false;
+        for (let i = 0; i < availableSlots.length; i++) {
+            const slot = availableSlots[i];
+            if (isTimeSlotAvailable(slot.day, slot.startTime, chunk.duration, null)) {
+                placeChunk(chunk, slot.day, slot.startTime, chunk.duration); // [수정] duration 전달
 
-        // 같은 날짜면, 시간이 겹치는지 확인
-        const slotMin = timeToMinutes(slot.startTime);
-        // (겹치면 false, 안 겹치면 true 반환)
-        return slotMin < startMin || slotMin >= endMin;
+                // 사용된 슬롯은 availableSlots에서 제거
+                const startMin = timeToMinutes(slot.startTime);
+                const endMin = startMin + chunk.duration;
+                for (let t = startMin; t < endMin; t += 30) {
+                    const timeToRemove = minutesToTime(t);
+                    const indexToRemove = availableSlots.findIndex(s => s.day === slot.day && s.startTime === timeToRemove);
+                    if (indexToRemove !== -1) availableSlots.splice(indexToRemove, 1);
+                }
+                placed = true;
+                break;
+            }
+        }
     });
-}
 
-/** 일정 조각을 시간표에 실제로 배치하는 헬퍼 함수 (✨ 파라미터 수정됨) */
-function placeChunk(task, day, startTime, duration) {
-    let subject = subjects.find(s => s.title === task.title);
+    renderSchedule();
+}
+/* ▼▼▼ [교체] placeChunk 함수 ▼▼▼ */
+/** 일정 조각을 시간표에 실제로 배치하는 헬퍼 함수 (✨ '주간 총 시간' 로직으로 복원) */
+function placeChunk(chunk, day, startTime, duration) {
+    let subject = subjects.find(s => s.title === chunk.title);
     if (!subject) {
         subject = {
             id: Date.now() + subjects.length,
-            title: task.title,
-            color: getPriorityColor(task.priority), // ✨ priority 사용
+            title: chunk.title,
+            color: getPriorityColor(chunk.priority), // [복원] priority 사용
         };
         subjects.push(subject);
     }
@@ -837,13 +824,12 @@ function placeChunk(task, day, startTime, duration) {
         scheduleId: 'auto' + Date.now() + Math.random(),
         subjectId: subject.id,
         day, startTime,
-        duration: duration, // ✨ 파라미터 사용
+        duration: duration, // [복원] 파라미터 사용
         isAutoPlaced: true,
-        dueDate: task.dueDate || null // ✨ dueDate 사용
+        dueDate: chunk.dueDate || null // [복원] dueDate 사용
     });
 }
-
-
+/* ▲▲▲ [교체] 여기까지 ▲▲▲ */
 /* ========================================================== */
 /* 7. 가져오기 / 내보내기 기능 */
 /* ========================================================== */
@@ -1620,9 +1606,9 @@ function initializeBatchEditModal() {
         form.addEventListener('submit', handleBatchEditFormSubmit);
     }
 }
-
+/* ▼▼▼ [교체] openBatchEditModal 함수 ▼▼▼ */
 /**
- * '배치 일정 수정' 모달을 열고 폼 데이터를 채웁니다.
+ * '배치 일정 수정' 모달을 열고 폼 데이터를 채웁니다. (✨ '주간 총 시간' 로직으로 복원)
  * @param {object} task - 수정할 task 객체
  */
 function openBatchEditModal(task) {
@@ -1631,26 +1617,17 @@ function openBatchEditModal(task) {
     document.getElementById('batch-edit-task-title').value = task.title;
     document.getElementById('batch-edit-task-due-date').value = task.dueDate || '';
     document.getElementById('batch-edit-task-priority').value = task.priority;
-
-    //스케줄 규칙 채우기
-    document.getElementById('batch-edit-task-duration').value = task.scheduleRule.duration;
-    document.getElementById('batch-edit-task-frequency-type').value = task.scheduleRule.frequencyType;
-    document.getElementById('batch-edit-task-frequency-count').value = task.scheduleRule.count;
+    // scheduleRule 관련 줄 삭제됨
 
     // 2. 모달 열기
     document.getElementById('batch-edit-modal-overlay').classList.remove('hidden');
 }
+/* ▲▲▲ [교체] 여기까지 ▲▲▲ */
 
-/**
- * '배치 일정 수정' 모달을 닫습니다.
- */
-function closeBatchEditModal() {
-    document.getElementById('batch-edit-modal-overlay').classList.add('hidden');
-    // (폼 리셋은 submit 핸들러가 처리)
-}
 
+/* ▼▼▼ [교체] handleBatchEditFormSubmit 함수 ▼▼▼ */
 /**
- * '배치 일정 수정' 폼 제출을 처리합니다.
+ * '배치 일정 수정' 폼 제출을 처리합니다. (✨ '주간 총 시간' 로직으로 복원)
  */
 function handleBatchEditFormSubmit(e) {
     e.preventDefault();
@@ -1660,12 +1637,7 @@ function handleBatchEditFormSubmit(e) {
     const newTitle = document.getElementById('batch-edit-task-title').value;
     const newDueDate = document.getElementById('batch-edit-task-due-date').value;
     const newPriority = document.getElementById('batch-edit-task-priority').value;
-
-    const newScheduleRule = {
-        duration: parseInt(document.getElementById('batch-edit-task-duration').value),
-        frequencyType: document.getElementById('batch-edit-task-frequency-type').value,
-        count: parseInt(document.getElementById('batch-edit-task-frequency-count').value)
-    };
+    // scheduleRule 관련 줄 삭제됨
 
     // 2. batchTasks 배열에서 원본 데이터 찾기
     const task = batchTasks.find(t => t.id === taskId);
@@ -1673,16 +1645,25 @@ function handleBatchEditFormSubmit(e) {
     if (task) {
         // 3. 데이터 업데이트
         task.title = newTitle;
-        task.dueDate = newDueDate || null; // 빈 문자열은 null로 저장
+        task.dueDate = newDueDate || null;
         task.priority = newPriority;
-        task.scheduleRule = newScheduleRule; //  규칙 업데이트
+        // scheduleRule 관련 줄 삭제됨
     }
 
     // 4. UI 갱신 및 모달 닫기
     renderBatchList();
     closeBatchEditModal();
-    document.getElementById('batch-edit-form').reset(); // 폼 초기화
+    document.getElementById('batch-edit-form').reset();
 }
+/* ▲▲▲ [교체] 여기까지 ▲▲▲ */
+/**
+ * '배치 일정 수정' 모달을 닫습니다.
+ */
+function closeBatchEditModal() {
+    document.getElementById('batch-edit-modal-overlay').classList.add('hidden');
+    // (폼 리셋은 submit 핸들러가 처리)
+}
+
 
 /* ========================================================== */
 /* 16. (신규) 최근 사용 색상 팔레트 기능 */

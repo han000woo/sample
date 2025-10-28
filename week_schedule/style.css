@@ -228,12 +228,11 @@ button {
     margin: 0;
 }
 
-/* 중요도별 목표 시간 설정 */
+/* ▼▼▼ [신규] 중요도별 목표 시간 설정 ▼▼▼ */
 #priority-settings {
     background-color: #e9ecef;
 }
 
-/* 토글 헤더 (클릭 영역) */
 .priority-toggle-header {
     display: flex;
     justify-content: space-between;
@@ -246,7 +245,6 @@ button {
     font-weight: bold;
     font-size: 13px;
     margin-bottom: 0;
-    /* 기존 margin 제거 */
     cursor: pointer;
 }
 
@@ -254,45 +252,26 @@ button {
     transition: transform 0.3s ease;
 }
 
-/* 내용 영역 (숨겨질 부분) */
 .priority-content {
     max-height: 0;
-    /* 기본적으로 닫힘 */
     overflow: hidden;
     transition: max-height 0.4s ease-out;
 }
 
 .priority-list {
     padding: 0 20px 15px 20px;
-    /* 토글 헤더의 패딩과 맞춤 */
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-/* 열렸을 때의 스타일 */
 #priority-settings:not(.is-collapsed) .priority-content {
     max-height: 500px;
-    /* 열렸을 때의 최대 높이 (충분히 크게) */
     transition: max-height 0.4s ease-in;
 }
 
 #priority-settings:not(.is-collapsed) .priority-toggle-header .chevron {
     transform: rotate(180deg);
-    /* 화살표 회전 */
-}
-
-#priority-settings label {
-    font-weight: bold;
-    font-size: 0.8rem;
-    display: block;
-    margin-bottom: 12px;
-}
-
-.priority-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
 }
 
 .priority-item {
@@ -301,10 +280,8 @@ button {
     gap: 8px;
 }
 
-/* (기존 .priority-item input 스타일을 select 스타일로 교체) */
 .priority-item select {
     width: 60px;
-    /* 시간/분 선택에 적절한 너비 */
     text-align: center;
     font-weight: bold;
     padding: 6px;
@@ -313,20 +290,10 @@ button {
     font-family: 'Noto Sans KR', sans-serif;
     font-size: 0.9rem;
     background-color: white;
-    /* select 배경색 */
 }
 
 .priority-item .priority-badge {
     flex-shrink: 0;
-}
-
-.priority-item input {
-    width: 3rem;
-    text-align: center;
-    font-weight: bold;
-    padding: 6px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
 }
 
 .priority-item em {
@@ -359,29 +326,60 @@ button {
 
 /* (기존 .batch-list-section, #priority-settings 등은 그대로 둡니다) */
 
-/* ----- 일정 추가 폼 (batch-form) 수정 ----- */
+/* ▼▼▼ [교체] #batch-form 관련 스타일 ▼▼▼ */
 #batch-form {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    /* [수정] 15px -> 10px */
+    flex-direction: column; /* [수정] */
+    gap: 10px; /* [수정] */
     margin-bottom: 15px;
     border-top: 1px solid #e9ecef;
     padding-top: 15px;
 }
 
-#batch-form input[type="number"] {
-    width: 100%;
+#batch-form input[type="text"],
+#batch-form input[type="date"],
+#batch-form textarea,
+#batch-form select {
+    padding: 10px;
+    border: 1px solid var(--gray-color);
+    border-radius: 5px;
+    font-size: 0.9rem;
+    width: 100%; /* [신규] */
 }
 
-/* [신규] 폼 안의 행 그룹 스타일 */
-#batch-form .form-group-row {
+#batch-form .form-row {
+    display: flex;
+    align-items: center;
     gap: 10px;
 }
-
-#batch-form .form-group-row .form-group {
-    margin-bottom: 0;
+#batch-form .form-row label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    flex-shrink: 0;
+    margin-bottom: 0; /* [신규] */
 }
+
+#batch-form textarea {
+    resize: vertical;
+}
+
+/* [교체] 폼 버튼 스타일 */
+#batch-form button[type="submit"] {
+    padding: 0;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* ▲▲▲ [교체] 여기까지 ▲▲▲ */
+
 
 /* 1. 일정 이름 입력칸 (Textarea) */
 #task-title {
@@ -457,28 +455,6 @@ button {
     border-color: #7B1FA2;
 }
 
-/* 4. 최종 추가 버튼 (기존 아이콘 버튼 스타일 교체) */
-#batch-form button[type="submit"] {
-    width: 100%;
-    padding: 10px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    border-radius: 5px !important;
-    background-color: var(--primary-color) !important;
-    color: white;
-    height: auto;
-    border: none;
-    cursor: pointer;
-}
-
-#batch-form button[type="submit"] .material-icons {
-    font-size: 1.1rem;
-}
-
 /* ----- 일정 목록 UI 수정 (마감일 추가) ----- */
 .task-info {
     flex-grow: 1;
@@ -526,67 +502,63 @@ button {
     align-self: center;
 }
 
-#batch-form input,
-#batch-form select {
-    padding: 10px;
-    height: 40px;
-    border: 1px solid var(--gray-color);
-    border-radius: 5px;
-    font-size: 0.9rem;
-}
-
 #task-title {
     flex-grow: 1;
 }
 
-#batch-form button {
-    padding: 0;
-    width: 42px;
-    height: 42px;
-    flex-shrink: 0;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
 
-/* 일정이 나열될 리스트 */
+/* ▼▼▼ [교체] .task-item 관련 스타일 블록 ▼▼▼ */
 #batch-list {
     flex-grow: 1;
     overflow-y: auto;
     padding-right: 5px;
 }
-
 .task-item {
     display: flex;
-    /* [수정] align-items: center -> flex-start (상단 정렬) */
-    align-items: flex-start;
+    align-items: flex-start; 
     justify-content: space-between;
     padding: 12px;
-    /* [수정] 패딩 살짝 증가 */
     border-radius: 6px;
-    /* [수정] */
     margin-bottom: 8px;
     background-color: white;
     border: 1px solid var(--grid-border-color);
-    /* [신규] 경계선 추가 */
     box-shadow: none;
-    /* [수정] box-shadow -> border로 변경 */
     transition: background-color 0.2s;
 }
-
+.task-item:hover { background-color: #fcfcfc; }
 .task-info {
     display: flex;
     align-items: flex-start;
     gap: 10px;
+    flex-grow: 1;
+    overflow: hidden;
+}
+/* (이하 .priority-badge 스타일은 그대로 둡니다) */
+.task-details {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+    gap: 4px;
+}
+.task-title {
     font-weight: 500;
     font-size: 0.9rem;
+    white-space: pre-line;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+    color: #222;
 }
-
+/* [삭제] .task-rule 스타일 삭제 */
+.task-due-date {
+    font-size: 0.8rem;
+    color: var(--danger-color);
+    font-weight: 500;
+    white-space: nowrap;
+}
+/* (이하 .task-actions 스타일은 그대로 둡니다) */
+/* ▲▲▲ [교체] 여기까지 ▲▲▲ */
 .priority-badge {
     font-weight: bold;
     font-size: 0.75rem;
@@ -1176,7 +1148,8 @@ button {
 /* [신규] 최근 사용 색상 팔레트 */
 #recent-colors-palette {
     display: flex;
-    flex-wrap: wrap; /* 색상이 많아지면 줄바꿈 */
+    flex-wrap: wrap;
+    /* 색상이 많아지면 줄바꿈 */
     gap: 8px;
     margin-top: 10px;
     padding-top: 10px;
@@ -1188,7 +1161,8 @@ button {
     height: 24px;
     border-radius: 50%;
     cursor: pointer;
-    border: 2px solid #ffffff; /* 테두리를 주어 흰색도 보이게 */
+    border: 2px solid #ffffff;
+    /* 테두리를 주어 흰색도 보이게 */
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     transition: transform 0.1s ease;
 }
