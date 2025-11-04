@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 맛집 지도 & 게시판</title>
+    <!-- OpenLayers CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.6.1/ol.css">
+
+    <!-- Tailwind CSS (간단한 UI 구성용) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* HTML, Body가 전체 높이를 차지하도록 설정 */
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            /* 스크롤바 숨기기 */
+        }
+
+        /* 앱 전체 컨테이너 */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* 메인 컨텐츠 영역 (지도/게시판) */
+        .content-area {
+            flex-grow: 1;
+            /* 탭 영역을 제외한 나머지 공간 모두 차지 */
+            position: relative;
+        }
+
+        /* 지도와 게시판 컨테이너가 부모 영역을 꽉 채우도록 */
+        #map-container,
+        #board-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            /* 게시판은 스크롤 허용 */
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            /* 부모 컨테이너(#map-container)를 꽉 채움 */
+        }
+
+        /* 팝업 스타일 (기존과 동일) */
+        #popup {
+            position: absolute;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 12px;
+            min-width: 150px;
+            max-width: 300px;
+            bottom: 12px;
+            transform: translateX(-50%) translateY(-10%);
+            
+            border: 1px solid #ccc;
+            z-index: 10;
+            /* 팝업이 지도 위에 오도록 */
+        }
+
+        #popup:after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -8px;
+            border-width: 8px;
+            border-style: solid;
+            border-color: white transparent transparent transparent;
+        }
+
+        #popup-content {
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* 활성 탭 스타일 */
+        .tab.active {
+            border-bottom-color: #3B82F6;
+            /* blue-500 */
+            font-weight: 600;
+            color: #3B82F6;
+        }
+    </style>
+</head>
+
+<body class="font-sans">
+
+    <div class="app-container">
+        <!-- 1. 탭 내비게이션 -->
+        <nav class="flex border-b">
+            <button id="map-tab" class="tab py-3 px-6 text-center text-gray-700 border-b-2 active">
+                맛집 지도
+            </button>
+            <button id="board-tab" class="tab py-3 px-6 text-center text-gray-500 border-b-2">
+                맛집 게시판
+            </button>
+        </nav>
+
+        <!-- 2. 메인 컨텐츠 영역 -->
+        <div class="content-area">
+            <!-- 2-1. 지도 컨테이너 -->
+            <div id="map-container">
+                <div id="map"></div>
+            </div>
+
+            <!-- 2-2. 게시판 컨테이너 (처음엔 숨김) -->
+            <div id="board-container" class="hidden bg-gray-50 p-4">
+                <h2 class="text-xl font-semibold mb-4">맛집 코멘트 목록</h2>
+                <div id="board-list" class="space-y-3">
+                    <!-- API 데이터로 채워질 영역 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 팝업 오버레이 (위치 변경 없음) -->
+    <div id="popup" class="hidden">
+        <div id="popup-content"></div>
+    </div>
+
+
+    <!-- [수정] 메인 애플리케이션 로직 -->
+    <script type="module">
+        import * as api from './static/api.js'
+        import * as crud from './static/crud.js'
+
+        // --- 1. OpenLayers 모듈 임포트 ---
+        const { Map: OlMap, View } = ol;
+        const { Tile: TileLayer, Vector: VectorLayer } = ol.layer;
+        const { XYZ, Vector: VectorSource } = ol.source;
+        const { Feature } = ol;
+        const { Point } = ol.geom;
+        const { fromLonLat } = ol.proj;
+        const { Style, Circle: CircleStyle, Fill, Stroke } = ol.style;
+        const { Overlay } = ol;
+
+        // --- 전역 변수 및 DOM 요소 ---
+        const mapTab = document.getElementById('map-tab');
+        const boardTab = document.getElementById('board-tab');
+        const mapContainer = document.getElementById('map-container');
+        const boardContainer = document.getElementById('board-container');
+        const boardList = document.getElementById('board-list');
+
+        const popupElement = document.getElementById('popup');
+        const popupContent = document.getElementById('popup-content');
+
+        const commentFeatures = new Map();
+
+        // --- 2. VWorld 기본 지도 레이어 ---
+        const vworldBaseLayer = new TileLayer({
+            title: "VWorld 기본지도",
+            source: new XYZ({
+                url: 'http://xdworld.vworld.kr:8080/2d/Base/201802/{z}/{x}/{y}.png'
+            }),
+            visible: true,
+            zIndex: 1
+        });
+
+        // --- 3. 맛집 마커 스타일 정의 ---
+        const markerStyle = new Style({
+            image: new CircleStyle({
+                radius: 8,
+                fill: new Fill({ color: 'rgba(255, 0, 0, 0.8)' }),
+                stroke: new Stroke({ color: 'rgba(255, 255, 255, 1)', width: 2 }),
+            }),
+        });
+
+        // --- 4. 맛집 마커를 담을 벡터 레이어 ---
+        const vectorSource = new VectorSource();
+        const markerLayer = new VectorLayer({
+            source: vectorSource,
+            style: markerStyle,
+            zIndex: 2
+        });
+
+        // --- 5. 팝업 오버레이 설정 ---
+        const popupOverlay = new Overlay({
+            element: popupElement,
+            autoPan: { animation: { duration: 250 } },
+        });
+
+        // --- 6. 지도 초기화 ---
+        const map = new OlMap({
+            target: 'map',
+            layers: [vworldBaseLayer, markerLayer],
+            view: new View({
+                center: fromLonLat([126.977969, 37.566535]), // 서울 시청
+                zoom: 12
+            }),
+            overlays: [popupOverlay]
+        });
+
+        // --- 7. API 데이터 로드 및 UI 갱신 ---
+        async function fetchAndDisplayData() {
+            
+            const comments = await api.getComments();
+            
+            // 기존 데이터 초기화
+            vectorSource.clear();
+            boardList.innerHTML = '';
+            commentFeatures.clear();
+
+            const features = [];
+
+            comments.forEach(comment => {
+                const boardItem = crud.createBoardItem(comment);
+                boardList.appendChild(boardItem);
+
+                if (comment.latitude && comment.longitude) {
+                    const coords = fromLonLat([comment.longitude, comment.latitude]);
+
+                    const markerFeature = new Feature({
+                        geometry: new Point(coords),
+                        id: comment.id,
+                        text: comment.text,
+                        owner_id: comment.owner_id
+                    });
+
+                    markerFeature.setId(comment.id);
+                    commentFeatures.set(comment.id, markerFeature);
+
+                    features.push(markerFeature);
+                }
+            });
+
+            vectorSource.addFeatures(features);
+            console.log(`맛집 마커 ${features.length}개 / 게시글 ${comments.length}개를 로드했습니다.`);
+        }
+
+
+        // --- 9. 게시판 항목 클릭 핸들러 (지도 이동) ---
+        function handleBoardItemClick(comment) {
+            if (!comment.latitude || !comment.longitude) {
+                console.warn("이 항목은 위치 정보가 없어 지도로 이동할 수 없습니다.");
+                return;
+            }
+
+            switchToMapView();
+
+            const feature = commentFeatures.get(comment.id);
+            if (!feature) return;
+
+            const coordinates = feature.getGeometry().getCoordinates();
+            map.getView().animate({
+                center: coordinates,
+                zoom: 16,
+                duration: 1000
+            });
+
+            const text = feature.get('text');
+            popupContent.innerHTML = `<strong>맛집 코멘트:</strong><br>${text}`;
+            popupOverlay.setPosition(coordinates);
+            popupElement.classList.remove('hidden');
+        }
+
+        // --- 10. [수정] 수정 버튼 클릭 핸들러 ---
+        async function handleUpdateClick(comment) {
+            const newText = prompt("새로운 댓글 내용을 입력하세요:", comment.text);
+
+            if (!newText || newText.trim() === "") {
+                console.log("수정이 취소되었습니다.");
+                return;
+            }
+
+            try {
+                // [수정] api.js 모듈의 patchComment 함수 사용
+                await api.patchComment(comment.id, { text: newText });
+
+                // 수정 성공 시, UI 새로고침
+                fetchAndDisplayData(); // 데이터 다시 불러오기
+
+            } catch (error) {
+                console.error("댓글 수정에 실패했습니다:", error);
+                // 사용자에게 피드백을 주는 UI 추가 가능
+            }
+        }
+
+        // --- 11. [수정] 삭제 버튼 클릭 핸들러 ---
+        async function handleDeleteClick(comment) {
+            // (참고) 실제 앱에서는 `confirm()` 대신 커스텀 모달을 사용해야 합니다.
+            // if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) {
+            //     return;
+            // }
+
+            try {
+                // [수정] api.js 모듈의 removeComment 함수 사용
+                await api.removeComment(comment.id);
+
+                // 삭제 성공 시, UI 새로고침
+                fetchAndDisplayData(); // 데이터 다시 불러오기
+
+            } catch (error) {
+                console.error("댓글 삭제에 실패했습니다:", error);
+                // 사용자에게 피드백을 주는 UI 추가 가능
+            }
+        }
+
+
+        // --- 12. 마커 클릭 시 팝업 표시 ---
+        map.on('click', function (evt) {
+            const feature = map.forEachFeatureAtPixel(evt.pixel, (f) => f);
+
+            if (feature) {
+                const coordinates = feature.getGeometry().getCoordinates();
+                const text = feature.get('text');
+
+                popupContent.innerHTML = `<strong>맛집 코멘트:</strong><br>${text}`;
+                popupOverlay.setPosition(coordinates);
+                popupElement.classList.remove('hidden');
+
+            } else {
+                popupOverlay.setPosition(undefined);
+                popupElement.classList.add('hidden');
+            }
+        });
+
+        // --- 13. 탭 전환 로직 ---
+        function switchToMapView() {
+            mapContainer.classList.remove('hidden');
+            boardContainer.classList.add('hidden');
+
+            mapTab.classList.add('active', 'text-gray-700');
+            mapTab.classList.remove('text-gray-500');
+            boardTab.classList.remove('active', 'text-gray-700');
+            boardTab.classList.add('text-gray-500');
+
+            map.updateSize(); 
+        }
+
+        function switchToBoardView() {
+            mapContainer.classList.add('hidden');
+            boardContainer.classList.remove('hidden');
+
+            boardTab.classList.add('active', 'text-gray-700');
+            boardTab.classList.remove('text-gray-500');
+            mapTab.classList.remove('active', 'text-gray-700');
+            mapTab.classList.add('text-gray-500');
+        }
+
+        mapTab.addEventListener('click', switchToMapView);
+        boardTab.addEventListener('click', switchToBoardView);
+
+        // --- 14. 페이지 로드 시 데이터 fetching 실행 ---
+        document.addEventListener('DOMContentLoaded', fetchAndDisplayData);
+        
+    </script>
+</body>
+
+</html>
