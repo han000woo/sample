@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import uvicorn
 from database import Base, engine
-from routers import comment, tag, user
+from routers import comment, tag, user,auth
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -30,6 +30,7 @@ app.mount("/map", StaticFiles(directory="./web/static"), name="static")
 app.include_router(user.router, prefix="/api/v1")
 app.include_router(comment.router, prefix="/api/v1")
 app.include_router(tag.router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1")
 
 @app.get("/", tags=["Root"])
 async def read_root() :

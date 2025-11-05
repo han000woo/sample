@@ -1,5 +1,9 @@
+// 댓글 저장 버튼 
+const saveCommentButton = document.getElementById('save-comment');
+
+
 // 게시판 항목 생성 함수 ---
-function createBoardItem(comment) {
+export function createBoardItem(comment) {
     const item = document.createElement('div');
     item.className = 'p-3 bg-white border rounded-lg shadow-sm';
     item.setAttribute('data-comment-id', comment.id);

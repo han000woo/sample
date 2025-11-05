@@ -1,0 +1,150 @@
+/* HTML, Body가 전체 높이를 차지하도록 설정 */
+html,
+body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    /* 스크롤바 숨기기 */
+}
+
+/* 앱 전체 컨테이너 */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* 메인 컨텐츠 영역 (지도/게시판) */
+.content-area {
+    flex-grow: 1;
+    /* 탭 영역을 제외한 나머지 공간 모두 차지 */
+    position: relative;
+}
+
+/* 지도와 게시판 컨테이너가 부모 영역을 꽉 채우도록 */
+#map-container,
+#board-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    /* 게시판은 스크롤 허용 */
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+    /* 부모 컨테이너(#map-container)를 꽉 채움 */
+}
+#menu {
+    padding: 0px;
+}
+#auth-status{
+    display: flex;
+    gap: 30px;
+    right: 10px;
+}
+/* 팝업 스타일 (기존과 동일) */
+#popup {
+    position: absolute;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 12px;
+    bottom: 12px;
+    transform: translateX(-50%) translateY(-10%);
+    border: 1px solid #ccc;
+    z-index: 10;
+    /* 팝업이 지도 위에 오도록 */
+}
+#popup::after {
+    content: "";
+    position: absolute;
+    bottom: -10px; /* 팝업 아래쪽에 위치 */
+    left: 50%;
+    transform: translateX(-50%) ;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;  /* 좌측 투명 */
+    border-right: 10px solid transparent; /* 우측 투명 */
+    border-top: 10px solid white;         /* 위쪽 흰색 — 팝업 배경색과 동일 */
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); /* 약간의 그림자 */
+}
+
+#popup-content {
+    font-size: 14px;
+    width: 500px;
+    color: #333;
+}
+
+/* 활성 탭 스타일 */
+.tab.active {
+    border-bottom-color: #3B82F6;
+    /* blue-500 */
+    font-weight: 600;
+    color: #3B82F6;
+}
+
+.ol-popup {
+    position: absolute;
+    background-color: white;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    bottom: 12px;
+    left: -50px;
+    min-width: 250px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.hidden {
+    display: none;
+}
+
+#comment-input {
+    width: 100%;
+    height: auto;
+    margin: 0px;
+    box-sizing: border-box;
+}
+
+#save-comment {
+    margin-top: 5px;
+    width: 100%;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 6px 0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#save-comment:hover {
+    background-color: #0056b3;
+}
+
+#tag-container {
+  margin: 8px 0;
+}
+
+.tag-btn {
+  display: inline-block;
+  margin: 2px;
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f4f4f4;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tag-btn:hover {
+  background-color: #e8e8e8;
+}
+
+.tag-btn.selected {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}

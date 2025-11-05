@@ -1,16 +1,16 @@
 from sqlalchemy.orm import Session
-
+from auth.hashing import get_password_hash
 import models
 import schemas
-
-# (실제 앱에서는 비밀번호 해싱을 위해 passlib 등을 사용해야 합니다)
-def get_password_hash(password: str) :
-    return password + "_hashed_!"
 
 # --- User CRUD ---
 def get_user(db: Session, user_id: int) :
     """ID로 단일 사용자 조회"""
     return db.query(models.User).filter(models.User.id == user_id).first() 
+
+def get_user_by_username(db: Session, username: str) :
+    """UserName으로 단일 사용자 조회"""
+    return db.query(models.User).filter(models.User.username == username).first()
 
 def get_user_by_email(db: Session, email: str) :
     """이메일로 단일 사용자 조회"""

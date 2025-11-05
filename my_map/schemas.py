@@ -21,13 +21,14 @@ class TagRead(TagBase):
 
 # --- 댓글(Comment) 스키마 ---
 class CommentBase(BaseModel):
+    title: str
     text: str
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
 
 class CommentCreate(CommentBase):
-    pass
+    tags: List[int]
 
 
 class CommentRead(CommentBase):
@@ -50,6 +51,8 @@ class UserBase(BaseModel):
     username: str
     email: EmailStr
 
+class UserInDB(UserBase) :
+    hashed_password: str 
 
 class UserCreate(UserBase):
     password: str

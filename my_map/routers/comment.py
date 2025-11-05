@@ -1,11 +1,13 @@
 from typing import List
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, status 
+from auth.utils import get_current_user
 import crud
 from database import get_db
-
 import schemas
+from fastapi.security import OAuth2PasswordBearer
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 router = APIRouter(
     prefix="/comments",
@@ -38,24 +40,21 @@ def read_comment_endpoint(comment_id: int, db: Session = Depends(get_db)):
         )
     return db_comment 
 
-@router.post("/users/{user_id}", response_model=schemas.CommentRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.CommentRead, status_code=status.HTTP_201_CREATED)
 def create_comment_for_user_endpoint(
-    user_id : int, comment: schemas.CommentCreate, db:Session =Depends(get_db) 
+    comment: schemas.CommentCreate, 
+    db:Session =Depends(get_db),
+    token: str = Depends(oauth2_scheme)
 ):
     """
     특정 사용자의 새 댓글을 생성합니다.
-    - **user_id**: 댓글을 작성할 사용자의 ID
     - **comment**: 댓글 내용을 포함하는 CommentCreate 스키마.
     - (Controller -> crud.create_user_comment)
     """
     # 사용자가 존재하는지 먼저 확인 (예시)
-    db_user = crud.get_user(db, user_id=user_id)
-    if db_user is None : 
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="댓글을 작성할 사용자를 찾을 수 없습니다."
-        )
-    return crud.create_user_comment(db=db, comment=comment, user_id=user_id)
+    db_user = get_current_user(token,db)
+    
+    return crud.create_user_comment(db=db, comment=comment, user_id=db_user.id)
 
 @router.post("/{comment_id}/tags/{tag_id}", response_model=schemas.CommentRead)
 def add_tag_to_comment_endpoint(
@@ -75,9 +74,11 @@ def add_tag_to_comment_endpoint(
         )
     return db_comment
 
-@router.patch("/users/{user_id}",response_model=schemas.CommentRead)
+@router.patch("/",response_model=schemas.CommentRead)
 def update_comment_endpoint(
-    user_id : int, comment: schemas.CommentUpdate, db:Session =Depends(get_db) 
+    comment: schemas.CommentUpdate, 
+    db:Session =Depends(get_db), 
+    token: str = Depends(oauth2_scheme) 
 ):
     """
     특정 사용자의 댓글을 수정합니다.
@@ -86,7 +87,8 @@ def update_comment_endpoint(
     - **comment_id**: 댓글 내용을 포함하는 CommentCreate 스키마.
     - (Controller -> crud.create_user_comment)
     """
-    db_comment = crud.update_user_comment(db, comment, user_id)
+    db_user = get_current_user(token,db)
+    db_comment = crud.update_user_comment(db, comment, db_user.id)
     if db_comment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,  # 또는 403, 상황에 따라 다름
@@ -94,9 +96,11 @@ def update_comment_endpoint(
         )
     return db_comment
 
-@router.delete("/{comment_id}/users/{user_id}", status_code=204, response_model=None)
+@router.delete("/{comment_id}", status_code=204, response_model=None)
 def delete_comment_endpoint(
-    user_id : int, comment_id: int, db:Session =Depends(get_db) 
+    comment_id: int, 
+    db:Session =Depends(get_db),
+    token: str = Depends(oauth2_scheme) 
 ):
     """
     특정 사용자의 댓글을 삭제합니다..
@@ -104,8 +108,8 @@ def delete_comment_endpoint(
     - **comment**: 삭제할 댓글을 나타내는 스키마
     - (Controller -> crud.delete_user_comment)
     """
-    print(comment_id)
-    db_comment = crud.delete_user_comment(db,comment_id,user_id)
+    db_user = get_current_user(token,db)
+    db_comment = crud.delete_user_comment(db,comment_id,db_user.id)
     if db_comment is None :
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
