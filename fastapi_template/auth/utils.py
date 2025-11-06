@@ -8,9 +8,9 @@ from jwt.exceptions import InvalidTokenError
 
 from auth.hashing import verify_password
 from auth.schemas import TokenData
-from service.user import get_user, get_user_by_username
-from database.database import get_db
-from schemas.user import UserRead
+from crud import get_user, get_user_by_username
+from database import get_db
+from schemas.schemas import UserRead
 
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"

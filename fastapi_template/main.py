@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 import uvicorn
-from database.database import Base, engine
+from database import Base, engine
 from routers import comment, tag, user,auth
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
