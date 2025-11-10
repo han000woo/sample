@@ -23,12 +23,6 @@
             <MapComponent :restaurants="restaurants" @restaurant-selected="handleRestaurantSelect"
                 class="flex-1 md:w-2/3 relative" />
 
-            <!-- 팝업 오버레이 (맵 컴포넌트가 사용) -->
-            <div id="popup" class="ol-popup" style="display: none;">
-                <a href="#" id="popup-closer" class="ol-popup-closer">&times;</a>
-                <div id="popup-content"></div>
-            </div>
-
             <!-- Sidebar -->
             <Sidebar :restaurant="selectedRestaurant" @add-comment="handleAddComment"
                 class="md:w-1/3 w-full bg-white shadow-lg overflow-y-auto p-6" />

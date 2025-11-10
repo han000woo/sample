@@ -2,11 +2,15 @@
     <!-- (View) -->
     <!-- 지도가 렌더링될 DOM 요소 -->
     <div ref="mapContainer" class="map-container"></div>
+    <!-- 팝업 오버레이 (맵 컴포넌트가 사용) -->
+    <div id="popup" class="ol-popup" style="display: none;">
+        <a href="#" id="popup-closer" class="ol-popup-closer">&times;</a>
+        <div id="popup-content"></div>
+    </div>
 </template>
-
 <script setup>
 // (ViewModel)
-import { ref, onMounted, onUnmounted, watch, inject } from 'vue';
+import { ref, onMounted, onUnmounted, watch, inject, toRaw } from 'vue';
 import 'ol/ol.css';
 import { Map, View } from 'ol';
 import TileLayer from 'ol/layer/Tile';
@@ -80,8 +84,8 @@ const initMap = () => {
         ],
         overlays: [popupOverlay.value],
         view: new View({
-            center: fromLonLat([126.9895, 37.5651]),
-            zoom: 13
+            center: fromLonLat([127.047832752, 37.652775322]),
+            zoom: 17
         })
     });
 
@@ -117,16 +121,23 @@ const initMap = () => {
 const updateMarkers = (restaurants) => {
     if (!vectorLayer.value) return;
 
+    // Pinia 프록시 객체를 순수 배열로 변환
+    const restaurantsRaw = toRaw(restaurants);
+
     const source = vectorLayer.value.getSource();
     source.clear(); // 기존 마커 제거
 
-    const markerFeatures = restaurants.map(r => {
+    const markerFeatures = restaurantsRaw.map(r => {
+        // const rawR = toRaw(r); // 중복 toRaw 제거
+
         const feature = new Feature({
             geometry: new Point(fromLonLat(r.coords)),
             restaurantId: r.id,
             name: r.name,
         });
+
         feature.setStyle(markerStyle);
+
         return feature;
     });
 
@@ -152,7 +163,12 @@ onUnmounted(() => {
 });
 
 // props.restaurants가 (store에 의해) 변경되면 마커 업데이트
-watch(() => props.restaurants, (newRestaurants) => {
-    updateMarkers(newRestaurants);
-});
+watch(
+    () => props.restaurants,
+    (newRestaurants) => {
+        updateMarkers(toRaw(newRestaurants));
+    },
+    { deep: true }
+);
+
 </script>

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 import LoginView from '../views/LoginView.vue';
+import SignupView from '@/views/SignupView.vue';
 // import store from '../store'; // 상태 체크를 위해 store 임포트 (삭제)
 import { useAuthStore } from '../store/auth'; // auth 스토어 임포트
 
@@ -15,6 +16,11 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: LoginView
+  },
+  { 
+    path: '/signup',
+    name: 'Signup',
+    component: SignupView
   }
 ];
 
@@ -32,7 +38,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !isLoggedIn) {
     // 로그인이 필요한 페이지에 비로그인 상태로 접근 시
     next('/login');
-  } else if (to.path === '/login' && isLoggedIn) {
+  } else if ((to.path === '/login' || to.path === '/signup') && isLoggedIn) { 
     // 로그인 상태에서 로그인 페이지 접근 시
     next('/');
   } else {

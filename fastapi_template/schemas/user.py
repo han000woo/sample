@@ -13,3 +13,8 @@ class UserInDB(UserBase) :
 
 class UserCreate(UserBase):
     password: str
+
+class UserRead(UserBase):
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)

@@ -8,19 +8,23 @@
                     <label for="username" class="block text-sm font-medium text-gray-700 mb-2">아이디</label>
                     <input type="text" id="username" v-model="loginForm.username"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="user">
+                        placeholder="gkstjsdn0011">
                 </div>
                 <div class="mb-6">
                     <label for="password" class="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
                     <input type="password" id="password" v-model="loginForm.password"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="pass1234">
+                        placeholder="wintop0410@">
                 </div>
                 <p v-if="errorMessage" class="text-red-500 text-sm mb-4 text-center">{{ errorMessage }}</p>
                 <button type="submit"
                     class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition duration-300">
                     로그인
                 </button>
+                <p class="text-sm text-gray-500 mt-4 text-center">
+                  계정이 없으신가요?
+                  <router-link to="/signup" class="text-blue-600 hover:underline">회원가입</router-link>
+               </p>
                 <p class="text-xs text-gray-500 mt-4 text-center">
                     (Mock: 'user' / 'pass1234')
                 </p>
@@ -36,8 +40,8 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../store/auth'; // Pinia 스토어 임포트
 
 const loginForm = reactive({
-    username: 'user',
-    password: 'pass1234'
+    username: 'gkstjsdn0011',
+    password: 'wintop0410@'
 });
 const errorMessage = ref('');
 
