@@ -14,34 +14,28 @@
 
 #popup {
   background-color: white;
-  padding: 10px 15px;
+  padding: 14px 30px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border: 1px solid #ccc;
   position: absolute;
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, -20%);
   bottom: 12px;
-  left: -50px;
   min-width: 200px;
   white-space: nowrap;
 }
 
-#popup:after,
-#popup:before {
-  top: 100%;
-  border: solid transparent;
-  content: " ";
-  height: 0;
-  width: 0;
+/* 말풍선 화살표 */
+#popup::after {
+  content: "";
   position: absolute;
-  pointer-events: none;
-}
-
-#poppup:after {
-  border-top-color: white;
-  border-width: 10px;
-  left: 48px;
+  top: 100%; /* 박스의 맨 아래쪽에 위치 */
+  left: 50%; /* 중앙정렬 */
   margin-left: -10px;
+  border-width: 10px;
+  border-style: solid;
+  border-color: white transparent transparent transparent;
+  filter: drop-shadow(0 -1px 1px rgba(0,0,0,0.1)); /* 살짝 그림자 효과 */
 }
 
 #poppup:before {

@@ -12,6 +12,16 @@ export default defineConfig({
     vueDevTools(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://fastapi_app:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
+      },
+    }
+  }
+  ,
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

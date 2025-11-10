@@ -1,54 +1,57 @@
 <template>
     <!-- (View) -->
-    <aside>
-        <div v-if="!restaurant">
-            <h3 class="text-xl font-semibold text-gray-800">맛집을 선택하세요</h3>
-            <p class="text-gray-600 mt-2">지도 위의 아이콘을 클릭하면 맛집 정보와 리뷰를 볼 수 있습니다.</p>
+    <div class="sidebar-container bg-white shadow-lg overflow-y-auto">
+        <!-- 1. 로고 및 로그아웃 -->
+        <div class="p-4 border-b flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-blue-600">맛집 지도</h1>
+            <button @click="handleLogout" class="text-sm text-gray-500 hover:text-red-500 hover:underline">
+                로그아웃 ({{ authStore.currentUser }})
+            </button>
         </div>
 
-        <div v-else>
-            <!-- 맛집 정보 -->
-            <h3 class="text-2xl font-bold text-blue-700 mb-3">{{ restaurant.name }}</h3>
-            <p class="text-gray-600 mb-2">{{ restaurant.category }}</p>
-            <p class="text-gray-800 mb-4">{{ restaurant.address }}</p>
+        <!-- 2. 맛집 정보 (선택되었을 때) -->
+        <div v-if="selectedRestaurant" class="p-4 border-b">
+            <h2 class="text-xl font-semibold mb-2">{{ selectedRestaurant.name }}</h2>
+            <p classs="text-sm text-gray-600 mb-1">{{ selectedRestaurant.category }}</p>
+            <p classs="text-sm text-gray-500 mb-4">{{ selectedRestaurant.address }}</p>
 
-            <div class="flex items-center mb-4">
-                <span class="text-lg font-semibold text-yellow-500 mr-2">
-                    평균 별점: {{ formatRating(averageRating) }}
-                </span>
-                <div class="flex">
-                    <span v-for="n in 5" :key="'avg-' + n" class="text-yellow-400">
-                        {{ n <= averageRating ? '★' : '☆' }} </span>
-                </div>
-                <span class="text-sm text-gray-500 ml-2">({{ restaurant.comments.length }}개 리뷰)</span>
-            </div>
+            <!-- [신규] 즐겨찾기 버튼 (동적) -->
+            <button @click="handleFavoriteToggle" :class="[
+                'w-full py-2 px-4 rounded-lg font-semibold transition duration-300',
+                restaurantStore.currentFavoriteStatus
+                    ? 'bg-red-500 text-white hover:bg-red-600'
+                    : 'bg-yellow-400 text-gray-800 hover:bg-yellow-500'
+            ]">
+                {{ restaurantStore.currentFavoriteStatus ? '내 지도에서 제거' : '내 지도에 추가 ★' }}
+            </button>
 
-            <hr class="my-4">
+            <!-- 3. 댓글 목록 -->
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold mb-3">
+                    리뷰 ({{ selectedComments.length }}개)
+                </h3>
 
-            <!-- 댓글 목록 -->
-            <h4 class="text-lg font-semibold mb-3">리뷰 및 댓글</h4>
-            <div class="space-y-4 max-h-60 overflow-y-auto pr-2">
-                <div v-if="restaurant.comments.length === 0" class="text-gray-500 text-center py-4">
-                    아직 등록된 리뷰가 없습니다.
-                </div>
-                <div v-for="comment in restaurant.comments" :key="comment.id"
-                    class="bg-gray-50 border border-gray-200 p-3 rounded-lg">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="font-semibold text-gray-800">{{ comment.author }}</span>
-                        <div class="flex text-yellow-400">
-                            <span v-for="n in 5" :key="'cmt-' + n">
-                                {{ n <= comment.rating ? '★' : '☆' }} </span>
+                <ul v-if="selectedComments.length > 0"
+                    class="space-y-3 max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                    <li v-for="comment in selectedComments" :key="comment.id"
+                        class="p-3 bg-gray-50 rounded-lg shadow-sm">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-semibold text-sm">{{ comment.author }}</span>
+                            <span class="text-xs text-yellow-500">
+                                {{ '★'.repeat(comment.rating) }}{{ '☆'.repeat(5 - comment.rating) }}
+                            </span>
                         </div>
-                    </div>
-                    <p class="text-gray-700">{{ comment.text }}</p>
-                </div>
+                        <p class="text-sm text-gray-700">{{ comment.text }}</p>
+                    </li>
+                </ul>
+
+                <p v-else class="text-sm text-gray-500 italic">아직 리뷰가 없습니다.</p>
             </div>
 
-            <hr class="my-6">
 
-            <!-- 새 댓글 작성 폼 -->
-            <h4 class="text-lg font-semibold mb-3">리뷰 남기기</h4>
-            <form @submit.prevent="submitComment">
+            <!-- 4. 댓글 작성 폼 -->
+            <form @submit.prevent="handleCommentSubmit" class="mt-5">
+                <h4 class="text-md font-semibold mb-2">리뷰 남기기</h4>
                 <div class="mb-3">
                     <label for="rating" class="block text-sm font-medium text-gray-700 mb-1">별점</label>
                     <select v-model="newComment.rating" id="rating"
@@ -61,72 +64,125 @@
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label for="comment-text" class="block text-sm font-medium text-gray-700 mb-1">내용</label>
-                    <textarea id="comment-text" v-model="newComment.text" rows="3"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="맛집에 대한 리뷰를 남겨주세요."></textarea>
+                    <textarea v-model.trim="newComment.text" placeholder="솔직한 리뷰를 남겨주세요." required rows="3"
+                        class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                 </div>
                 <button type="submit"
                     class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition duration-300">
-                    등록하기
+                    댓글 등록
                 </button>
             </form>
+
         </div>
-    </aside>
+
+        <!-- 5. 기본 안내 (선택되지 않았을 때) -->
+        <div v-else class="p-6 text-center">
+            <p class="text-gray-600">지도에서 맛집을 선택해주세요!</p>
+        </div>
+    </div>
 </template>
 
 <script setup>
 // (ViewModel)
-import { ref, reactive, computed, watch } from 'vue';
+import { reactive } from 'vue';
+import { useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
+import { useAuthStore } from '../store/auth';
+import { useRestaurantStore } from '../store/restaurants';
 
-// 부모(HomeView)로부터 선택된 맛집 정보를 받음
-const props = defineProps({
-    restaurant: {
-        type: Object,
-        default: null
-    }
-});
+// --- 스토어 및 라우터 설정 ---
+const authStore = useAuthStore();
+const restaurantStore = useRestaurantStore();
+const router = useRouter();
 
-// 부모(HomeView)에게 댓글 추가 이벤트를 보냄
-const emit = defineEmits(['add-comment']);
+// --- 반응형 상태 ---
+// storeToRefs를 사용해 state와 getter를 반응형으로 가져옴
+const { selectedRestaurant, selectedComments } = storeToRefs(restaurantStore);
 
-// 새 댓글 폼을 위한 로컬 상태
+// 댓글 폼을 위한 내부 상태
 const newComment = reactive({
     rating: 5,
     text: ''
 });
 
-// (ViewModel - Computed Property)
-const averageRating = computed(() => {
-    if (!props.restaurant || props.restaurant.comments.length === 0) {
-        return 0;
-    }
-    const total = props.restaurant.comments.reduce((acc, comment) => acc + comment.rating, 0);
-    return total / props.restaurant.comments.length;
-});
+// --- 이벤트 핸들러 ---
 
-const formatRating = (rating) => {
-    return rating.toFixed(1);
+/**
+ * 로그아웃 처리
+ */
+const handleLogout = () => {
+    authStore.logout();
+    router.push('/login');
 };
 
-// (ViewModel - Method)
-const submitComment = () => {
-    if (!newComment.text.trim()) {
-        alert('내용을 입력해주세요.');
+/**
+ * 댓글 폼 제출 처리
+ */
+const handleCommentSubmit = async () => {
+    if (!newComment.text) {
+        alert("댓글 내용을 입력해주세요.");
         return;
     }
+    if (!selectedRestaurant.value) return;
 
-    // 부모에게 이벤트 emit
-    emit('add-comment', { ...newComment });
+    // 스토어 액션 호출 (백엔드 API 호출)
+    await restaurantStore.addComment(selectedRestaurant.value.id, {
+        text: newComment.text,
+        rating: newComment.rating
+    });
 
     // 폼 초기화
-    newComment.rating = 5;
     newComment.text = '';
+    newComment.rating = 5;
 };
 
-// 맛집 선택이 바뀌면 폼 초기화
-watch(() => props.restaurant, () => {
-    newComment.rating = 5;
-    newComment.text = '';
-});
+/**
+ * [신규] 즐겨찾기 버튼 토글 처리
+ */
+const handleFavoriteToggle = async () => {
+    if (!selectedRestaurant.value) return;
+
+    const store_id = selectedRestaurant.value.id;
+
+    if (restaurantStore.currentFavoriteStatus) {
+        // 이미 즐겨찾기 상태 -> 제거
+        await restaurantStore.removeFavorite(store_id);
+        // [선택 사항] "내 지도" 페이지에 있다면, 목록에서 즉시 제거
+        if (router.currentRoute.value.path === '/my-map') {
+            restaurantStore.restaurants = restaurantStore.restaurants.filter(r => r.id !== store_id);
+            restaurantStore.clearSelectedRestaurant();
+        }
+    } else {
+        // 즐겨찾기 아님 -> 추가
+        await restaurantStore.addFavorite(store_id);
+    }
+};
 </script>
+
+<style scoped>
+/* 사이드바 고정 스타일 */
+.sidebar-container {
+    width: 400px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    /* Tailwind의 shadow-lg 사용 */
+}
+
+/* 모바일 화면에서는 사이드바를 숨기거나 너비를 100%로 하는 등의 처리가 필요할 수 있습니다. 
+   (지금은 데스크탑 우선) 
+*/
+@media (max-width: 768px) {
+    .sidebar-container {
+        width: 100%;
+        height: 40vh;
+        /* 모바일에서는 하단 시트처럼 */
+        bottom: 0;
+        top: auto;
+        left: 0;
+        z-index: 1000;
+    }
+}
+</style>

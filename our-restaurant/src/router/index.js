@@ -4,6 +4,7 @@ import LoginView from '../views/LoginView.vue';
 import SignupView from '@/views/SignupView.vue';
 // import store from '../store'; // 상태 체크를 위해 store 임포트 (삭제)
 import { useAuthStore } from '../store/auth'; // auth 스토어 임포트
+import MyMapVIew from '@/views/MyMapVIew.vue';
 
 const routes = [
   {
@@ -21,6 +22,11 @@ const routes = [
     path: '/signup',
     name: 'Signup',
     component: SignupView
+  },
+  { 
+    path: '/my-map',
+    name: 'MyMap',
+    component: MyMapVIew
   }
 ];
 

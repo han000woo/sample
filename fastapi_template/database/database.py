@@ -1,16 +1,32 @@
+# from sqlalchemy import create_engine
+# from sqlalchemy.ext.declarative import declarative_base
+# from sqlalchemy.orm import sessionmaker
+
+# SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
+
+# engine = create_engine(
+#     SQLALCHEMY_DATABASE_URL,
+#     connect_args={"check_same_thread":False}
+# )
+
+# SessionLocal = sessionmaker(autocommit=False, autoflush= False, bind=engine)
+
+# Base = declarative_base()
+
+import os
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread":False}
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "mysql+pymysql://root:root@mysql_db:3306/sample_db"  # mysql_db는 docker-compose 서비스 이름
 )
+engine = create_engine(DATABASE_URL, echo=True, future=True)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush= False, bind=engine)
+# DB 세션 생성을 위한 SessionLocal 클래스
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# DB 모델(models.py)들이 상속받을 Base 클래스
 Base = declarative_base()
 
 # --- 의존성 주입 (Dependency Injection) ---

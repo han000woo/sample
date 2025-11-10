@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pydantic import BaseModel, BeforeValidator, ConfigDict
 from typing import List, Optional, Annotated
 
@@ -63,8 +64,8 @@ class StoreItem(BaseModel):
     hoNo: Optional[str] = None
     
     # [수정] 좌표 필드에도 동일하게 적용
-    lon: Annotated[Optional[float], BeforeValidator(empty_str_to_none)] = None
-    lat: Annotated[Optional[float], BeforeValidator(empty_str_to_none)] = None
+    lon: Annotated[Optional[Decimal], BeforeValidator(empty_str_to_none)] = None
+    lat: Annotated[Optional[Decimal], BeforeValidator(empty_str_to_none)] = None
 
     class Config:
         from_attributes = True
@@ -83,7 +84,7 @@ class StoreReadForVue(BaseModel):
     name: str
     category: str
     address: Optional[str]
-    coords: List[float]
+    coords: List[Decimal]
     comments: List[CommentRead] = []  # 항상 CommentRead 리스트
 
     model_config = ConfigDict(from_attributes=True)
