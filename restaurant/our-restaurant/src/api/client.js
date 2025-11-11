@@ -2,7 +2,8 @@ import axios from 'axios';
 import { useAuthStore } from '../store/auth';
 
 const api = axios.create({
-  baseURL: 'http://172.20.144.1:8000/api/v1', // 서버 LAN IP 사용
+  // baseURL: 'http://172.20.144.1:8000/api/v1', // 서버 LAN IP 사용
+  baseURL: "http://localhost:8000/api/v1",
   timeout: 10000,
 });
 

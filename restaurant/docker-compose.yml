@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   backend:
-    build: ./fastapi_template
+    build: ./restaurant_api
     container_name: fastapi_app
     depends_on:
       - mysql
