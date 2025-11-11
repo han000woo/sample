@@ -17,11 +17,19 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "mysql+pymysql://root:root@mysql_db:3306/sample_db"  # mysql_db는 docker-compose 서비스 이름
+# DATABASE_URL = os.getenv(
+#     "DATABASE_URL",
+#     "mysql+pymysql://root:root@mysql_db:3306/sample_db"  # mysql_db는 docker-compose 서비스 이름
+# )
+
+# engine = create_engine(DATABASE_URL, echo=True, future=True)
+
+SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread":False}
 )
-engine = create_engine(DATABASE_URL, echo=True, future=True)
 
 # DB 세션 생성을 위한 SessionLocal 클래스
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
